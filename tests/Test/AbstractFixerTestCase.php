@@ -399,7 +399,7 @@ abstract class AbstractFixerTestCase extends TestCase
         /** @var array<class-string, list<string>> */
         $allowedExtraMethods = [
             ClassAttributesSeparationFixerTest::class => ['testCommentBlockStartDetection', 'provideCommentBlockStartDetectionCases'],
-            ClassDefinitionFixerTest::class => ['testClassyDefinitionInfo', 'provideClassyDefinitionInfoCases', 'testClassyInheritanceInfo', 'provideClassyInheritanceInfoCases', 'testClassyInheritanceInfoPre80', 'provideClassyInheritanceInfoPre80Cases'],
+            ClassDefinitionFixerTest::class => ['testClassyDefinitionInfo', 'provideClassyDefinitionInfoCases', 'testClassyInheritanceInfo', 'provideClassyInheritanceInfoCases', 'testClassyInheritanceConformalInfo', 'provideClassyInheritanceConformalInfoCases'],
             NoEmptyCommentFixerTest::class => ['testGetCommentBlock', 'provideGetCommentBlockCases'],
             NoUselessElseFixerTest::class => ['testBlockDetection', 'provideBlockDetectionCases', 'testIsInConditionWithoutBraces', 'provideIsInConditionWithoutBracesCases'],
             PhpUnitTestCaseStaticMethodCallsFixerTest::class => ['testFixerContainsAllPhpunitStaticMethodsInItsList', 'testPHPUnit10', 'testPHPUnit11', 'testPHPUnit12', 'testPHPUnit13', 'testPHPUnit14'],
@@ -496,6 +496,10 @@ abstract class AbstractFixerTestCase extends TestCase
      */
     protected function doTest(string $expected, ?string $input = null, ?\SplFileInfo $file = null): void
     {
+        // Start overall timing
+        $overallStartTime = hrtime(true);
+        $timings = [];
+
         if ($expected === $input) {
             throw new \InvalidArgumentException('Input parameter must not be equal to expected parameter.');
         }
@@ -504,24 +508,40 @@ abstract class AbstractFixerTestCase extends TestCase
         $fileIsSupported = $this->fixer->supports($file);
 
         if (null !== $input) {
+            // Timing: Linting input source
+            $lintInputStart = hrtime(true);
             self::assertNull($this->lintSource($input));
+            $timings['lint_input'] = (hrtime(true) - $lintInputStart) / 1e6; // Convert to milliseconds
 
+            // Timing: Token creation from input
+            $tokenizeInputStart = hrtime(true);
             Tokens::clearCache();
             $tokens = Tokens::fromCode($input);
+            $timings['tokenize_input'] = (hrtime(true) - $tokenizeInputStart) / 1e6;
 
             if ($fileIsSupported) {
                 self::assertTrue($this->fixer->isCandidate($tokens), 'Fixer must be a candidate for input code.');
                 self::assertFalse($tokens->isChanged(), 'Fixer must not touch Tokens on candidate check.');
+
+                // Timing: Fixer execution on input
+                $fixerExecInputStart = hrtime(true);
                 $this->fixer->fix($file, $tokens);
+                $timings['fixer_execution_input'] = (hrtime(true) - $fixerExecInputStart) / 1e6;
             }
 
+            // Timing: Code generation from fixed input
+            $codeGenInputStart = hrtime(true);
             self::assertThat(
                 $tokens->generateCode(),
                 new IsIdenticalString($expected),
                 'Code built on input code must match expected code.',
             );
+            $timings['code_generation_input'] = (hrtime(true) - $codeGenInputStart) / 1e6;
+
             self::assertTrue($tokens->isChanged(), 'Tokens collection built on input code must be marked as changed after fixing.');
 
+            // Timing: Token cleanup and comparison
+            $tokenCleanupStart = hrtime(true);
             $tokens->clearEmptyTokens();
 
             self::assertSameSize(
@@ -533,23 +553,66 @@ abstract class AbstractFixerTestCase extends TestCase
             Tokens::clearCache();
             $expectedTokens = Tokens::fromCode($expected);
             self::assertTokens($expectedTokens, $tokens);
+            $timings['token_cleanup_comparison'] = (hrtime(true) - $tokenCleanupStart) / 1e6;
         }
 
+        // Timing: Linting expected source
+        $lintExpectedStart = hrtime(true);
         self::assertNull($this->lintSource($expected));
+        $timings['lint_expected'] = (hrtime(true) - $lintExpectedStart) / 1e6;
 
+        // Timing: Token creation from expected
+        $tokenizeExpectedStart = hrtime(true);
         Tokens::clearCache();
         $tokens = Tokens::fromCode($expected);
+        $timings['tokenize_expected'] = (hrtime(true) - $tokenizeExpectedStart) / 1e6;
 
         if ($fileIsSupported) {
+            // Timing: Fixer execution on expected
+            $fixerExecExpectedStart = hrtime(true);
             $this->fixer->fix($file, $tokens);
+            $timings['fixer_execution_expected'] = (hrtime(true) - $fixerExecExpectedStart) / 1e6;
         }
 
+        // Timing: Code generation from expected
+        $codeGenExpectedStart = hrtime(true);
         self::assertThat(
             $tokens->generateCode(),
             new IsIdenticalString($expected),
             'Code built on expected code must not change.',
         );
+        $timings['code_generation_expected'] = (hrtime(true) - $codeGenExpectedStart) / 1e6;
+
         self::assertFalse($tokens->isChanged(), 'Tokens collection built on expected code must not be marked as changed after fixing.');
+
+        // Calculate total time
+        $overallTime = (hrtime(true) - $overallStartTime) / 1e6;
+        $timings['total'] = $overallTime;
+
+        // Output timings for debugging/performance analysis
+        $this->outputTestTimings($timings);
+    }
+
+    /**
+     * Output test execution timings for performance monitoring.
+     *
+     * @param array<string, float> $timings Timing data in milliseconds
+     */
+    private function outputTestTimings(array $timings): void
+    {
+        // Only output timings if verbose mode is enabled or for slow operations (> 100ms)
+        $totalTime = $timings['total'] ?? 0;
+
+        if ($totalTime > 100) {
+            $fixerName = $this->fixer?->getName() ?? 'Unknown';
+            echo "\n[Performance] {$fixerName}:\n";
+            foreach ($timings as $operation => $time) {
+                if ($operation !== 'total') {
+                    printf("  - %s: %.2f ms\n", $operation, $time);
+                }
+            }
+            printf("  - TOTAL: %.2f ms\n", $totalTime);
+        }
     }
 
     protected function lintSource(string $source): ?string
@@ -625,7 +688,7 @@ abstract class AbstractFixerTestCase extends TestCase
             $option->hasDefault(),
             \sprintf(
                 $option->hasDefault()
-                    ? 'Option `%s` of fixer `%s` is wrongly listed in `ALLOWED_REQUIRED_OPTIONS` structure, as it is not required. If you just changed that option to not be required anymore, please adjust mentioned structure.'
+                    ? 'Option `%s` of fixer `%s` is wrongly listed in `ALLOWED_REQUIRED_OPTIONS` structure, as it is not required. If you just changed that option to not be required anymore, please adjust `ALLOWED_REQUIRED_OPTIONS` structure.'
                     : 'Option `%s` of fixer `%s` shall not be required. If you want to introduce new required option please adjust `ALLOWED_REQUIRED_OPTIONS` structure.',
                 $option->getName(),
                 $fixer->getName(),
