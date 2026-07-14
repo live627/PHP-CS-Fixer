@@ -149,7 +149,11 @@ final class PerformanceProfiler
             $report .= "Stage Timings:\n";
             foreach ($this->timings as $stage => $microseconds) {
                 $ms = $microseconds / 1_000.0;
-                $report .= "  {$stage}: {$ms:.3f}ms\n";
+                $report .= sprintf(
+					"  %s: %.3fms\n",
+					$stage,
+					$ms,
+				);
             }
             $report .= "\n";
         }
@@ -158,15 +162,21 @@ final class PerformanceProfiler
         if ([] !== $this->fixerTimings) {
             $report .= "Per-Fixer Timings:\n";
             $sortedFixers = $this->fixerTimings;
-            usort($sortedFixers, static function (array $a, array $b): int {
+            uasort($sortedFixers, static function (array $a, array $b): int {
                 return (int) ($b['total'] <=> $a['total']);
             });
 
-            foreach ($this->fixerTimings as $fixer => $data) {
+            foreach ($sortedFixers as $fixer => $data) {
                 $avgMs = ($data['total'] / max(1, $data['count'])) / 1_000.0;
                 $totalMs = $data['total'] / 1_000.0;
                 $count = $data['count'];
-                $report .= "  {$fixer}: {$totalMs:.3f}ms total ({$count} calls, {$avgMs:.3f}ms avg)\n";
+				$report .= sprintf(
+					"  %s: %.3fms total (%d calls, %.3fms avg)\n",
+					$fixer,
+					$totalMs,
+					$count,
+					$avgMs,
+				);
             }
         }
 
