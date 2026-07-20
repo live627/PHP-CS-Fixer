@@ -29,6 +29,30 @@ use PhpCsFixer\Tokenizer\Tokens;
  */
 abstract class AbstractFixer implements FixerInterface
 {
+	private array $timers = [];
+
+	public function getTimers(): array
+	{
+		return $this->timers;
+	}
+
+	public function resetTimers(): void
+	{
+		$this->timers = [];
+	}
+
+	protected function time(string $name, callable $callback): mixed
+	{
+		$start = hrtime(true);
+
+		try {
+			return $callback();
+		} finally {
+			$this->timers[$name] ??= 0;
+			$this->timers[$name] += hrtime(true) - $start;
+		}
+	}
+
     protected WhitespacesFixerConfig $whitespacesConfig;
 
     /**
@@ -55,16 +79,25 @@ abstract class AbstractFixer implements FixerInterface
         }
     }
 
-    final public function fix(\SplFileInfo $file, Tokens $tokens): void
-    {
-        if ($this instanceof ConfigurableFixerInterface && property_exists($this, 'configuration') && null === $this->configuration) {
-            throw new RequiredFixerConfigurationException($this->getName(), 'Configuration is required.');
-        }
+	final public function fix(\SplFileInfo $file, Tokens $tokens): void
+	{
+		$this->time('fix', function () use ($file, $tokens): void {
+			if (
+				$this instanceof ConfigurableFixerInterface
+				&& property_exists($this, 'configuration')
+				&& null === $this->configuration
+			) {
+				throw new RequiredFixerConfigurationException(
+					$this->getName(),
+					'Configuration is required.',
+				);
+			}
 
-        if (0 < $tokens->count() && $this->isCandidate($tokens) && $this->supports($file)) {
-            $this->applyFix($file, $tokens);
-        }
-    }
+			if (0 < $tokens->count() && $this->isCandidate($tokens) && $this->supports($file)) {
+				$this->applyFix($file, $tokens);
+			}
+		});
+	}
 
     public function isRisky(): bool
     {
