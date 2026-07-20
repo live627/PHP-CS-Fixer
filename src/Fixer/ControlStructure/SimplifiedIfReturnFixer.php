@@ -102,11 +102,22 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             }
 
             $startParenthesisIndex = $tokens->getNextTokenOfKind($ifIndex, ['(']);
-            $endParenthesisIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $startParenthesisIndex);
+
+			$endParenthesisIndex = $this->time(
+				'findBlockEnd',
+				fn() => $tokens->findBlockEnd(
+					Tokens::BLOCK_TYPE_PARENTHESIS_BRACE,
+					$startParenthesisIndex,
+				),
+			);
+
             $firstCandidateIndex = $tokens->getNextMeaningfulToken($endParenthesisIndex);
 
             foreach ($this->sequences as $sequenceSpec) {
-                $sequenceFound = $tokens->findSequence($sequenceSpec['sequence'], $firstCandidateIndex);
+				$sequenceFound = $this->time(
+					'findSequence',
+					fn() => $tokens->findSequence($sequenceSpec['sequence'], $firstCandidateIndex),
+				);
 
                 if (null === $sequenceFound) {
                     continue;
@@ -122,9 +133,14 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 array_pop($indicesToClear); // Preserve last semicolon
                 rsort($indicesToClear);
 
-                foreach ($indicesToClear as $index) {
-                    $tokens->clearTokenAndMergeSurroundingWhitespace($index);
-                }
+				$this->time(
+					'clearTokenAndMergeSurroundingWhitespace',
+					static function () use ($tokens, $indicesToClear): void {
+						foreach ($indicesToClear as $index) {
+							$tokens->clearTokenAndMergeSurroundingWhitespace($index);
+						}
+					},
+				);
 
                 $newTokens = [
                     new Token([\T_RETURN, 'return']),
