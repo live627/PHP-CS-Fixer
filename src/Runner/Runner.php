@@ -552,8 +552,29 @@ final class Runner
             }
         }
 
+		file_put_contents('out.txt', "Token Parsing: " . $this->profiler->getStageTimeMs('token_parsing') . "ms\nLine Length Fixer Avg: " . $this->profiler->getFixerAverageTimeMs('line_length') . "ms\n" . $this->profiler->getReport());
+
+		ksort($this->timers);
+
+		file_put_contents(
+			'timings.json',
+			json_encode(
+				array_map(
+					static fn (array $timers): array => array_map(
+						static fn (float $time): float => round($time / 1e6, 6),
+						$timers,
+					),
+					$this->timers,
+				),
+				JSON_PRETTY_PRINT,
+			),
+			LOCK_EX,
+		);
+
         return $changed;
     }
+
+    private array $timers = [];
 
     /**
      * @return null|array{appliedFixers: list<string>, diff: string}
@@ -631,7 +652,7 @@ final class Runner
                 @php-cs-fixer-ignore annotation(s) used for rules that are not in the current set of enabled rules:
                 %s
 
-                Please check your annotation(s) usage in {$filePathname} to ensure that these rules are included, or update your annotation(s) usage if they have been replaced by other rules in t[...]
+                Please check your annotation(s) usage in {$filePathname} to ensure that these rules are included, or update your annotation(s) usage if they have been replaced by other rules in t
                 EOT,
         );
 
@@ -669,9 +690,20 @@ final class Runner
                     continue;
                 }
 
-                $this->profiler->startFixerStage($fixer->getName());
-                $fixer->fix($file, $tokens);
-                $this->profiler->stopFixerStage($fixer->getName());
+				$this->profiler->startFixerStage($fixer->getName());
+
+				$fixer->fix($file, $tokens);
+
+				$this->profiler->stopFixerStage($fixer->getName());
+
+				if ($fixer instanceof AbstractFixer) {
+					foreach ($fixer->getTimers() as $name => $time) {
+						$this->timers[$fixer->getName()][$name]
+							= ($this->timers[$fixer->getName()][$name] ?? 0.0) + $time;
+					}
+
+					$fixer->resetTimers();
+				}
 
                 if ($tokens->isChanged()) {
                     $tokens->clearEmptyTokens();
