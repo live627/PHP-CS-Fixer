@@ -106,7 +106,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             $firstCandidateIndex = $tokens->getNextMeaningfulToken($endParenthesisIndex);
 
             foreach ($this->sequences as $sequenceSpec) {
-                $sequenceFound = $this->findReturnBooleanSequence($tokens, $firstCandidateIndex, $sequenceSpec);
+                $this->findSequence($sequenceSpec['sequence'], $firstCandidateIndex, $tokens);
 
                 if (null === $sequenceFound) {
                     continue;
@@ -147,9 +147,17 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
         }
     }
 
-    private function findReturnBooleanSequence(Tokens $tokens, int $start, array $sequenceSpec): ?array
+    /**
+     * Find a sequence of meaningful tokens and returns the array of their locations.
+     *
+     * @param non-empty-list<_PhpTokenPrototypePartial|Token> $sequence      an array of token (kinds)
+     * @param int                                             $start         start index, defaulting to the start of the file
+     * @param Tokens                                        $tokens
+     *
+     * @return null|non-empty-array<int<0, max>, Token> an array containing the tokens matching the sequence elements, indexed by their position
+     */
+    private function findSequence(array $sequence, int $start, Tokens $tokens): ?array
     {
-        $sequence = $sequenceSpec['sequence'];
         $count = \count($tokens);
 
         for ($i = $start; $i < $count; ++$i) {
