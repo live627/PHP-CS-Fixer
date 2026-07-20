@@ -106,7 +106,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             $firstCandidateIndex = $tokens->getNextMeaningfulToken($endParenthesisIndex);
 
             foreach ($this->sequences as $sequenceSpec) {
-                $sequenceFound = $tokens->findSequence($sequenceSpec['sequence'], $firstCandidateIndex);
+                $sequenceFound = $this->findReturnBooleanSequence($tokens, $firstCandidateIndex, $sequenceSpec);
 
                 if (null === $sequenceFound) {
                     continue;
@@ -145,5 +145,50 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
         if ([] !== $slices) {
             $tokens->insertSlices($slices);
         }
+    }
+
+    private function findReturnBooleanSequence(Tokens $tokens, int $start, array $sequenceSpec): ?array
+    {
+        $sequence = $sequenceSpec['sequence'];
+        $count = \count($tokens);
+
+        for ($i = $start; $i < $count; ++$i) {
+            $current = $i;
+            $matched = [];
+
+            foreach ($sequence as $expected) {
+                if (null === $current) {
+                    continue 2;
+                }
+
+                $token = $tokens[$current];
+
+                if ($expected instanceof Token) {
+                    if (!$token->equals($expected)) {
+                        continue 2;
+                    }
+                } elseif (\is_string($expected)) {
+                    if ($token->getContent() !== $expected) {
+                        continue 2;
+                    }
+                } else {
+                    if ($token->getId() !== $expected[0]) {
+                        continue 2;
+                    }
+
+                    if (isset($expected[1]) && $token->getContent() !== $expected[1]) {
+                        continue 2;
+                    }
+                }
+
+                $matched[$current] = $token;
+
+                $current = $tokens->getNextMeaningfulToken($current);
+            }
+
+            return $matched;
+        }
+
+        return null;
     }
 }
