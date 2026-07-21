@@ -152,9 +152,9 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
      *
      * @param non-empty-list<_PhpTokenPrototypePartial|Token> $sequence an array of token (kinds)
      * @param int                                             $start    start index
-     * @param Tokens                                          $tokens
+     * @param Tokens                                          $tokens   tokens object
      *
-     * @return null|non-empty-array<int<0, max>, Token> an array containing the tokens matching the sequence elements, indexed by their position
+     * @return null|non-empty-array<int, Token> an array containing the tokens matching the sequence elements, indexed by their position
      */
     private function findSequence(array $sequence, int $start, Tokens $tokens): ?array
     {
