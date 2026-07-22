@@ -1025,6 +1025,7 @@ class Tokens extends \SplFixedArray
 
         return null;
     }
+
     /**
      * Insert instances of Token inside collection.
      *
