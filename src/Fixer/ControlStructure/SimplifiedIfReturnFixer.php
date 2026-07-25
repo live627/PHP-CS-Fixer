@@ -103,8 +103,12 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
     }
 
     /**
-     * @return array{isNegative: bool, indices: list<int>}|null
-     */
+     * @return null|array{
+     *     isNegative: bool,
+     *     start: int<0, max>,
+     *     end: int<0, max>
+     * }
+    */
     private function matchReturnSequence(Tokens $tokens, int $start): ?array
     {
         $count = $tokens->count();
@@ -131,7 +135,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
 
             $prev = $tokens->getPrevMeaningfulToken($return);
             if (null !== $prev && $tokens[$prev]->equals('{')) {
-                $indices[] = $prev;
+                $start = $prev;
             }
 
             $next = $tokens->getNextMeaningfulToken($semi1);
@@ -140,8 +144,6 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             }
 
             if ($tokens[$next]->equals('}')) {
-                $indices[] = $next;
-
                 $next = $tokens->getNextMeaningfulToken($next);
                 if (null === $next) {
                     continue;
@@ -170,7 +172,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
 
             return [
                 'isNegative' => 'false' === $value1,
-                'start' => $prev ?? $return,
+                'start' => $start ?? $return,
                 'end' => $semi2 - 1,
             ];
         }
