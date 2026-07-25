@@ -30,40 +30,6 @@ use PhpCsFixer\Tokenizer\Tokens;
  */
 final class SimplifiedIfReturnFixer extends AbstractFixer
 {
-    /**
-     * @var list<array{isNegative: bool, sequence: non-empty-list<_PhpTokenPrototypePartial>}>
-     */
-    private array $sequences = [
-        [
-            'isNegative' => false,
-            'sequence' => [
-                '{', [\T_RETURN], [\T_STRING, 'true'], ';', '}',
-                [\T_RETURN], [\T_STRING, 'false'], ';',
-            ],
-        ],
-        [
-            'isNegative' => true,
-            'sequence' => [
-                '{', [\T_RETURN], [\T_STRING, 'false'], ';', '}',
-                [\T_RETURN], [\T_STRING, 'true'], ';',
-            ],
-        ],
-        [
-            'isNegative' => false,
-            'sequence' => [
-                [\T_RETURN], [\T_STRING, 'true'], ';',
-                [\T_RETURN], [\T_STRING, 'false'], ';',
-            ],
-        ],
-        [
-            'isNegative' => true,
-            'sequence' => [
-                [\T_RETURN], [\T_STRING, 'false'], ';',
-                [\T_RETURN], [\T_STRING, 'true'], ';',
-            ],
-        ],
-    ];
-
     public function getDefinition(): FixerDefinitionInterface
     {
         return new FixerDefinition(
@@ -167,25 +133,28 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
+            $indices = [];
+
+            $prev = $tokens->getPrevMeaningfulToken($return);
+            if (null !== $prev && $tokens[$prev]->equals('{')) {
+                $indices[] = $prev;
+            }
+
+            $indices[] = $return;
+            $indices[] = $bool1;
+            $indices[] = $semi1;
+
             $next = $tokens->getNextMeaningfulToken($semi1);
             if (null === $next) {
                 continue;
             }
 
-            $indices = [$return, $bool1, $semi1];
-
-            if ('}' === $tokens[$next]->getContent()) {
+            if ($tokens[$next]->equals('}')) {
                 $indices[] = $next;
 
                 $next = $tokens->getNextMeaningfulToken($next);
                 if (null === $next) {
                     continue;
-                }
-
-                $prev = $tokens->getprevMeaningfulToken($return);
-
-                if ('{' === $tokens[$prev]->getContent()) {
-                    $indices[] = $prev;
                 }
             }
 
