@@ -86,7 +86,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             rsort($indicesToClear);
 
             foreach ($indicesToClear as $index) {
-                $tokens->clearTokenAndMergeSurroundingWhitespace($indicesToClear[$i]);
+                $tokens->clearTokenAndMergeSurroundingWhitespace($index);
             }
 
             $newTokens = [
