@@ -77,11 +77,16 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
-            if ($match['start'] !== $firstCandidateIndex) {
+            if ($match['indices'][0] !== $firstCandidateIndex) {
                 continue;
             }
 
-            $tokens->clearRange($match['start'], $match['end']);
+            $indicesToClear = $match['indices'];
+
+            // Preserve final semicolon
+            for ($i = \count($indicesToClear) - 2; $i >= 0; --$i) {
+                $tokens->clearTokenAndMergeSurroundingWhitespace($indicesToClear[$i]);
+            }
 
             $newTokens = [
                 new Token([\T_RETURN, 'return']),
@@ -128,10 +133,16 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
+            $indices = [];
+
             $prev = $tokens->getPrevMeaningfulToken($return);
             if (null !== $prev && $tokens[$prev]->equals('{')) {
                 $indices[] = $prev;
             }
+
+            $indices[] = $return;
+            $indices[] = $bool1;
+            $indices[] = $semi1;
 
             $next = $tokens->getNextMeaningfulToken($semi1);
             if (null === $next) {
@@ -151,6 +162,8 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
+            $indices[] = $next;
+
             $bool2 = $tokens->getNextMeaningfulToken($next);
             if (null === $bool2 || \T_STRING !== $tokens[$bool2]->getId()) {
                 continue;
@@ -162,15 +175,18 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
+            $indices[] = $bool2;
+
             $semi2 = $tokens->getNextMeaningfulToken($bool2);
             if (null === $semi2 || ';' !== $tokens[$semi2]->getContent()) {
                 continue;
             }
 
+            $indices[] = $semi2;
+
             return [
                 'isNegative' => 'false' === $value1,
-                'start' => $prev ?? $return,
-                'end' => $semi2 - 1,
+                'indices' => $indices,
             ];
         }
 
