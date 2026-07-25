@@ -83,9 +83,9 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             }
 
             $indicesToClear = $match['indices'];
+            array_pop($indicesToClear); // Preserve final semicolon
 
-            // Preserve final semicolon
-            for ($i = \count($indicesToClear) - 2; $i >= 0; --$i) {
+            for ($i = \count($indicesToClear) - 1; $i >= 0; --$i) {
                 $tokens->clearTokenAndMergeSurroundingWhitespace($indicesToClear[$i]);
             }
 
