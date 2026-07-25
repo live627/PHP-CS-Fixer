@@ -107,7 +107,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
     }
 
     /**
-     * @return array{isNegative: bool, indices: list<int>}|null
+     * @return null|array{isNegative: bool, indices: list<int<0, max>>}
      */
     private function matchReturnSequence(Tokens $tokens, int $start): ?array
     {
