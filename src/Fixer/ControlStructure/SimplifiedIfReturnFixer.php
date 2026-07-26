@@ -34,7 +34,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
     {
         return new FixerDefinition(
             'Simplify `if` control structures that return the boolean result of their condition.',
-            [new CodeSample("<?php\nif (\$foo) return true; return false;\n")],
+            [new CodeSample("<?php\nif (\$foo) { return true; } return false;\n")],
         );
     }
 
@@ -60,9 +60,9 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
         $nextIfIndex = null;
 
         for ($ifIndex = $tokens->count() - 1; 0 <= $ifIndex; --$ifIndex) {
-            // much faster to check the token type directly than via Token::isGivenKind().
             $id = $tokens[$ifIndex]->getId();
 
+            // much faster to check the token type directly than via Token::isGivenKind().
             if (\T_IF !== $id && \T_ELSEIF !== $id) {
                 continue;
             }
@@ -81,9 +81,17 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
-for ($i = $match['end'] - 1; $i >= $match['start']; --$i) {
-    $tokens->clearTokenAndMergeSurroundingWhitespace($i);
-}
+            if ($match['indices'][0] !== $firstCandidateIndex) {
+                continue;
+            }
+
+            $indicesToClear = $match['indices'];
+            array_pop($indicesToClear); // Preserve last semicolon
+            rsort($indicesToClear);
+
+            foreach ($indicesToClear as $index) {
+                $tokens->clearTokenAndMergeSurroundingWhitespace($index);
+            }
 
             $newTokens = [
                 new Token([\T_RETURN, 'return']),
@@ -108,81 +116,91 @@ for ($i = $match['end'] - 1; $i >= $match['start']; --$i) {
      */
     private function matchReturnSequence(Tokens $tokens, int $start): ?array
     {
-        $return = $start;
-        if (\T_RETURN !== $tokens[$return]->getId()) {
-            return null;
-        }
+        $count = $tokens->count();
 
-        $bool1 = $tokens->getNextMeaningfulToken($return);
-        if (null === $bool1 || \T_STRING !== $tokens[$bool1]->getId()) {
-            return null;
-        }
+		for ($return = $start; $return < $count; ++$return) {
+			$id = $tokens[$return]->getId();
 
-        $value1 = $tokens[$bool1]->getContent();
-        if ('true' !== $value1 && 'false' !== $value1) {
-            return null;
-        }
+			if (\T_IF === $id || \T_ELSEIF === $id) {
+				break;
+			}
 
-        $semi1 = $tokens->getNextMeaningfulToken($bool1);
-        if (null === $semi1 || ';' !== $tokens[$semi1]->getContent()) {
-            return null;
-        }
+			if (\T_RETURN !== $id) {
+				continue;
+			}
 
-        $indices = [];
+            $bool1 = $tokens->getNextMeaningfulToken($return);
+            if (null === $bool1 || \T_STRING !== $tokens[$bool1]->getId()) {
+                continue;
+            }
 
-        $prev = $tokens->getPrevMeaningfulToken($return);
-        if (null !== $prev && $tokens[$prev]->equals('{')) {
-            $begin = $prev;
-        }
+            $value1 = $tokens[$bool1]->getContent();
+            if ('true' !== $value1 && 'false' !== $value1) {
+                continue;
+            }
 
-        $indices[] = $return;
-        $indices[] = $bool1;
-        $indices[] = $semi1;
+            $semi1 = $tokens->getNextMeaningfulToken($bool1);
+            if (null === $semi1 || ';' !== $tokens[$semi1]->getContent()) {
+                continue;
+            }
 
-        $next = $tokens->getNextMeaningfulToken($semi1);
-        if (null === $next) {
-            return null;
-        }
+            $indices = [];
 
-        if ($tokens[$next]->equals('}')) {
+            $prev = $tokens->getPrevMeaningfulToken($return);
+            if (null !== $prev && $tokens[$prev]->equals('{')) {
+                $indices[] = $prev;
+            }
+
+            $indices[] = $return;
+            $indices[] = $bool1;
+            $indices[] = $semi1;
+
+            $next = $tokens->getNextMeaningfulToken($semi1);
+            if (null === $next) {
+                continue;
+            }
+
+            if ($tokens[$next]->equals('}')) {
+                $indices[] = $next;
+
+                $next = $tokens->getNextMeaningfulToken($next);
+                if (null === $next) {
+                    continue;
+                }
+            }
+
+            if (\T_RETURN !== $tokens[$next]->getId()) {
+                continue;
+            }
+
             $indices[] = $next;
 
-            $next = $tokens->getNextMeaningfulToken($next);
-            if (null === $next) {
-                return null;
+            $bool2 = $tokens->getNextMeaningfulToken($next);
+            if (null === $bool2 || \T_STRING !== $tokens[$bool2]->getId()) {
+                continue;
             }
+
+            $value2 = $tokens[$bool2]->getContent();
+
+            if (('true' !== $value2 && 'false' !== $value2) || $value1 === $value2) {
+                continue;
+            }
+
+            $indices[] = $bool2;
+
+            $semi2 = $tokens->getNextMeaningfulToken($bool2);
+            if (null === $semi2 || ';' !== $tokens[$semi2]->getContent()) {
+                continue;
+            }
+
+            $indices[] = $semi2;
+
+            return [
+                'isNegative' => 'false' === $value1,
+                'indices' => $indices,
+            ];
         }
 
-        if (\T_RETURN !== $tokens[$next]->getId()) {
-            return null;
-        }
-
-        $indices[] = $next;
-
-        $bool2 = $tokens->getNextMeaningfulToken($next);
-        if (null === $bool2 || \T_STRING !== $tokens[$bool2]->getId()) {
-            return null;
-        }
-
-        $value2 = $tokens[$bool2]->getContent();
-
-        if (('true' !== $value2 && 'false' !== $value2) || $value1 === $value2) {
-            return null;
-        }
-
-        $indices[] = $bool2;
-
-        $semi2 = $tokens->getNextMeaningfulToken($bool2);
-        if (null === $semi2 || ';' !== $tokens[$semi2]->getContent()) {
-            return null;
-        }
-
-        $indices[] = $semi2;
-
-return [
-    'isNegative' => 'false' === $value1,
-    'start' => $begin ?? $return,
-    'end' => $semi2,
-];
+        return null;
     }
 }
