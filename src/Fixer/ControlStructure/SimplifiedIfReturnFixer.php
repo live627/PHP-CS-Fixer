@@ -117,16 +117,18 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
     {
         $count = $tokens->count();
 
-		for ($return = $start; $return < $count; ++$return) {
-			$id = $tokens[$return]->getId();
+        for ($return = $start; $return < $count; ++$return) {
+            $id = $tokens[$return]->getId();
 
-			if (\T_IF === $id || \T_ELSEIF === $id) {
-				break;
-			}
+            // Avoid scanning past another conditional because a valid
+            // continuation of the original pattern is no longer possible.
+            if (\T_IF === $id || \T_ELSEIF === $id) {
+                break;
+            }
 
-			if (\T_RETURN !== $id) {
-				continue;
-			}
+            if (\T_RETURN !== $id) {
+                continue;
+            }
 
             $bool1 = $tokens->getNextMeaningfulToken($return);
             if (null === $bool1 || \T_STRING !== $tokens[$bool1]->getId()) {
