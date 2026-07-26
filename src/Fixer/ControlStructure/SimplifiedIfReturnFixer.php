@@ -80,17 +80,9 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
-            if ($match['indices'][0] !== $firstCandidateIndex) {
-                continue;
-            }
-
-            $indicesToClear = $match['indices'];
-            array_pop($indicesToClear); // Preserve last semicolon
-            rsort($indicesToClear);
-
-            foreach ($indicesToClear as $index) {
-                $tokens->clearTokenAndMergeSurroundingWhitespace($index);
-            }
+for ($i = $match['end'] - 1; $i >= $match['start']; --$i) {
+    $tokens->clearTokenAndMergeSurroundingWhitespace($i);
+}
 
             $newTokens = [
                 new Token([\T_RETURN, 'return']),
@@ -139,7 +131,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
 
         $prev = $tokens->getPrevMeaningfulToken($return);
         if (null !== $prev && $tokens[$prev]->equals('{')) {
-            $indices[] = $prev;
+            $begin = $prev;
         }
 
         $indices[] = $return;
@@ -186,9 +178,10 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
 
         $indices[] = $semi2;
 
-        return [
-            'isNegative' => 'false' === $value1,
-            'indices' => $indices,
-        ];
+return [
+    'isNegative' => 'false' === $value1,
+    'start' => $begin ?? $return,
+    'end' => $semi2,
+];
     }
 }
