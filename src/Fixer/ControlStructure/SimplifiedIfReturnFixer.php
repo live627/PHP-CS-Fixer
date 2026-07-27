@@ -107,7 +107,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             $firstCandidateIndex = $tokens->getNextMeaningfulToken($endParenthesisIndex);
 
             foreach ($this->sequences as $sequenceSpec) {
-                $sequenceFound = $tokens->findSequence($sequenceSpec['sequence'], $firstCandidateIndex, $nextIfIndex - 1);
+                $sequenceFound = $tokens->findSequence($sequenceSpec['sequence'], $firstCandidateIndex, $nextIfIndex);
 
                 if (null === $sequenceFound) {
                     continue;
