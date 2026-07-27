@@ -37,14 +37,14 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
         [
             'isNegative' => false,
             'sequence' => [
-                [\T_RETURN], [\T_STRING, 'true'], ';', '}',
+                '{', [\T_RETURN], [\T_STRING, 'true'], ';', '}',
                 [\T_RETURN], [\T_STRING, 'false'], ';',
             ],
         ],
         [
             'isNegative' => true,
             'sequence' => [
-                [\T_RETURN], [\T_STRING, 'false'], ';', '}',
+                '{', [\T_RETURN], [\T_STRING, 'false'], ';', '}',
                 [\T_RETURN], [\T_STRING, 'true'], ';',
             ],
         ],
@@ -125,13 +125,6 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
 
                 foreach ($indicesToClear as $index) {
                     $tokens->clearTokenAndMergeSurroundingWhitespace($index);
-                }
-
-                if ($sequenceSpec['sequence'][3] === '}') {
-                    $prev = $tokens->getPrevMeaningfulToken($firstSequenceIndex);
-                    if (null !== $prev && $tokens[$prev]->equals('{')) {
-                        $tokens->clearTokenAndMergeSurroundingWhitespace($prev);
-                    }
                 }
 
                 $newTokens = [
