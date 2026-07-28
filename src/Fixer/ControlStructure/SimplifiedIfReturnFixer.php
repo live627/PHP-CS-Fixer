@@ -74,13 +74,9 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             $endParenthesisIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $startParenthesisIndex);
             $firstCandidateIndex = $tokens->getNextMeaningfulToken($endParenthesisIndex);
 
-            $match = $this->matchReturnSequence($tokens, $firstCandidateIndex);
+            $match = $this->matchReturnSequence($tokens, $ifIndex + 1);
 
             if (null === $match) {
-                continue;
-            }
-
-            if ($match['indices'][0] !== $firstCandidateIndex) {
                 continue;
             }
 
