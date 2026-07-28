@@ -74,9 +74,13 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
             $endParenthesisIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $startParenthesisIndex);
             $firstCandidateIndex = $tokens->getNextMeaningfulToken($endParenthesisIndex);
 
-            $match = $this->matchReturnSequence($tokens, $ifIndex + 1);
+            $match = $this->matchReturnSequence($tokens, $firstCandidateIndex);
 
             if (null === $match) {
+                continue;
+            }
+
+            if ($match['indices'][0] !== $firstCandidateIndex) {
                 continue;
             }
 
@@ -88,14 +92,13 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 $tokens->clearTokenAndMergeSurroundingWhitespace($index);
             }
 
-            $newTokens = [
-                new Token([\T_RETURN, 'return']),
-                new Token([\T_WHITESPACE, ' ']),
-            ];
-
-            $newTokens[] = $match['isNegative']
-                ? new Token('!')
-                : new Token([\T_BOOL_CAST, '(bool)']);
+			$newTokens = [
+				new Token([\T_RETURN, 'return']),
+				new Token([\T_WHITESPACE, ' ']),
+				$match['isNegative']
+					? new Token('!')
+					: new Token([\T_BOOL_CAST, '(bool)']),
+			];
 
             $slices[$ifIndex] = $newTokens;
             $tokens->clearAt($ifIndex);
@@ -113,32 +116,27 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
     {
         $count = $tokens->count();
 
-        for ($return = $start; $return < $count; ++$return) {
+        //~ for ($return = $start; $return < $count; ++$return) {
+        $return = $start;
             $id = $tokens[$return]->getId();
 
-            // Avoid scanning past another conditional because a valid
-            // continuation of the original pattern is no longer possible.
-            if (\T_IF === $id || \T_ELSEIF === $id) {
-                break;
-            }
-
             if (\T_RETURN !== $id) {
-                continue;
+                return null;
             }
 
             $bool1 = $tokens->getNextMeaningfulToken($return);
             if (null === $bool1 || \T_STRING !== $tokens[$bool1]->getId()) {
-                continue;
+                return null;
             }
 
             $value1 = $tokens[$bool1]->getContent();
             if ('true' !== $value1 && 'false' !== $value1) {
-                continue;
+                return null;
             }
 
             $semi1 = $tokens->getNextMeaningfulToken($bool1);
             if (null === $semi1 || ';' !== $tokens[$semi1]->getContent()) {
-                continue;
+                return null;
             }
 
             $indices = [];
@@ -154,7 +152,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
 
             $next = $tokens->getNextMeaningfulToken($semi1);
             if (null === $next) {
-                continue;
+                return null;
             }
 
             if ($tokens[$next]->equals('}')) {
@@ -162,32 +160,32 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
 
                 $next = $tokens->getNextMeaningfulToken($next);
                 if (null === $next) {
-                    continue;
+                    return null;
                 }
             }
 
             if (\T_RETURN !== $tokens[$next]->getId()) {
-                continue;
+                return null;
             }
 
             $indices[] = $next;
 
             $bool2 = $tokens->getNextMeaningfulToken($next);
             if (null === $bool2 || \T_STRING !== $tokens[$bool2]->getId()) {
-                continue;
+                return null;
             }
 
             $value2 = $tokens[$bool2]->getContent();
 
             if (('true' !== $value2 && 'false' !== $value2) || $value1 === $value2) {
-                continue;
+                return null;
             }
 
             $indices[] = $bool2;
 
             $semi2 = $tokens->getNextMeaningfulToken($bool2);
             if (null === $semi2 || ';' !== $tokens[$semi2]->getContent()) {
-                continue;
+                return null;
             }
 
             $indices[] = $semi2;
@@ -196,7 +194,7 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 'isNegative' => 'false' === $value1,
                 'indices' => $indices,
             ];
-        }
+        //~ }
 
         return null;
     }
