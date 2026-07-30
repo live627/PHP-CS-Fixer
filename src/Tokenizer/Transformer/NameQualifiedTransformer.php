@@ -58,7 +58,8 @@ final class NameQualifiedTransformer extends AbstractTransformer
         \assert('' !== $token->getContent());
         $newTokens = ImportProcessor::tokenizeName($token->getContent());
 
-        $tokens->overrideRange($index, $index, $newTokens);
+        $this->slices[$index] = $newTokens;
+        $tokens->clearAt($index);
     }
 
     private function transformRelative(Tokens $tokens, Token $token, int $index): void
@@ -67,6 +68,17 @@ final class NameQualifiedTransformer extends AbstractTransformer
         $newTokens = ImportProcessor::tokenizeName($token->getContent());
         $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
 
-        $tokens->overrideRange($index, $index, $newTokens);
+        $this->slices[$index] = $newTokens;
+        $tokens->clearAt($index);
+    }
+
+    public function getSlices(): array
+    {
+        return $this->slices;
+    }
+
+    public function resetSlices(): void
+    {
+        $this->slices = [];
     }
 }
