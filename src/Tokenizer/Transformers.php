@@ -66,6 +66,16 @@ final class Transformers
             foreach ($tokens as $index => $token) {
                 $transformer->process($tokens, $token, $index);
             }
+
+            if (method_exists($transformer, 'getSlices')) {
+                $slices = $transformer->getSlices();
+
+                if ([] !== $slices) {
+                    $tokens->insertSlices($slices);
+                }
+
+                $transformer->resetSlices();
+            }
         }
     }
 
