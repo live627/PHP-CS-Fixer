@@ -110,6 +110,15 @@ abstract class AbstractTransformerTestCase extends TestCase
             $this->transformer->process($tokens, $token, $index);
         }
 
+        $slices = $this->transformer->getSlices();
+
+        if ([] !== $slices) {
+            $tokens->insertSlices($slices);
+        }
+
+        $this->transformer->resetSlices();
+        $tokens->clearEmptyTokens();
+
         self::assertFalse($tokens->isChanged());
     }
 
@@ -153,7 +162,12 @@ abstract class AbstractTransformerTestCase extends TestCase
 
         foreach ($tokens->observedModificationsPerTransformer as $appliedTransformerName => $modificationsOfTransformer) {
             foreach ($modificationsOfTransformer as $modification) {
-                self::assertIsInt($modification);
+                self::assertTrue('' === $modification || \is_int($modification));
+
+                if ('' === $modification) {
+                    break;
+                }
+
                 $customTokenName = Token::getNameForId($modification);
 
                 if ($appliedTransformerName === $transformerName) {
