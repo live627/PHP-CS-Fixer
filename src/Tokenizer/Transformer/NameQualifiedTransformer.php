@@ -39,34 +39,44 @@ final class NameQualifiedTransformer extends AbstractTransformer
         return 8_00_00;
     }
 
+    private array $slices = [];
+
     public function process(Tokens $tokens, Token $token, int $index): void
     {
-        if ($token->isGivenKind([FCT::T_NAME_QUALIFIED, FCT::T_NAME_FULLY_QUALIFIED])) {
-            $this->transformQualified($tokens, $token, $index);
-        } elseif ($token->isGivenKind(FCT::T_NAME_RELATIVE)) {
-            $this->transformRelative($tokens, $token, $index);
+        $id = $token->getId();
+
+        if (
+            FCT::T_NAME_QUALIFIED !== $id
+            && FCT::T_NAME_FULLY_QUALIFIED !== $id
+            && FCT::T_NAME_RELATIVE !== $id
+        ) {
+            return;
         }
+
+        $content = $token->getContent();
+        \assert('' !== $content);
+
+        $newTokens = ImportProcessor::tokenizeName($content);
+
+        if (FCT::T_NAME_RELATIVE === $id) {
+            $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
+        }
+
+        $this->slices[$index] = $newTokens;
+        $tokens->clearAt($index);
+    }
+
+    public function getSlices(): array
+    {
+        return $this->slices;
+    }
+
+    public function resetSlices(): void
+    {
+        $this->slices = [];
     }
 
     public function getCustomTokens(): array
     {
         return [];
     }
-
-    private function transformQualified(Tokens $tokens, Token $token, int $index): void
-    {
-        \assert('' !== $token->getContent());
-        $newTokens = ImportProcessor::tokenizeName($token->getContent());
-
-        $tokens->overrideRange($index, $index, $newTokens);
-    }
-
-    private function transformRelative(Tokens $tokens, Token $token, int $index): void
-    {
-        \assert('' !== $token->getContent());
-        $newTokens = ImportProcessor::tokenizeName($token->getContent());
-        $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
-
-        $tokens->overrideRange($index, $index, $newTokens);
-    }
-}
