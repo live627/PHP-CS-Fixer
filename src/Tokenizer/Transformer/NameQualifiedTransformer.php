@@ -62,7 +62,8 @@ final class NameQualifiedTransformer extends AbstractTransformer
             $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
         }
 
-        $tokens->overrideRange($index, $index, $newTokens);
+        $this->slices[$index] = $newTokens;
+        $tokens->clearAt($index);
     }
 
     public function getSlices(): array
