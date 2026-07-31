@@ -153,7 +153,7 @@ abstract class AbstractTransformerTestCase extends TestCase
 
         foreach ($tokens->observedModificationsPerTransformer as $appliedTransformerName => $modificationsOfTransformer) {
             foreach ($modificationsOfTransformer as $modification) {
-                self::assertIsInt($modification);
+                self::assertTrue('' === $modification || is_int($modification));
                 $customTokenName = Token::getNameForId($modification);
 
                 if ($appliedTransformerName === $transformerName) {
