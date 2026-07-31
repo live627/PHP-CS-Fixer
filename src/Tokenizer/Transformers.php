@@ -77,6 +77,8 @@ final class Transformers
                 $transformer->resetSlices();
             }
         }
+
+        $tokens->clearEmptyTokens();
     }
 
     /**
