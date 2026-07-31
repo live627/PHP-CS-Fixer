@@ -64,6 +64,15 @@ final class TokensWithObservedTransformers extends Tokens
             foreach ($this as $index => $token) {
                 $transformer->process($this, $token, $index);
             }
+
+            $slices = $this->transformer->getSlices();
+
+            if ([] !== $slices) {
+                $tokens->insertSlices($slices);
+            }
+
+            $this->transformer->resetSlices();
+            $tokens->clearEmptyTokens();
         }
 
         $this->currentTransformer = null;
