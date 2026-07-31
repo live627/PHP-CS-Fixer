@@ -153,13 +153,13 @@ abstract class AbstractTransformerTestCase extends TestCase
 
         foreach ($tokens->observedModificationsPerTransformer as $appliedTransformerName => $modificationsOfTransformer) {
             foreach ($modificationsOfTransformer as $modification) {
-                self::assertTrue('' === $modification || \is_int($modification));
-                $customTokenName = '' === $modification  ? '[cleared token]' : Token::getNameForId($modification);
+                self::assertTrue('' === $modification || is_int($modification));
+                $customTokenName = Token::getNameForId($modification);
 
                 if ($appliedTransformerName === $transformerName) {
                     self::assertContains(
                         $modification,
-                        array_merge([''], $customTokensOfTransformer),
+                        $customTokensOfTransformer,
                         \sprintf(
                             'Transformation into "%s" must be allowed in self-documentation of the Transformer, currently allowed custom tokens are: %s',
                             $customTokenName,
@@ -169,7 +169,7 @@ abstract class AbstractTransformerTestCase extends TestCase
                 } else {
                     self::assertNotContains(
                         $modification,
-                        array_merge([''], $customTokensOfTransformer),
+                        $customTokensOfTransformer,
                         \sprintf(
                             'Transformation into "%s" must NOT be applied by other Transformer than "%s".',
                             $customTokenName,
