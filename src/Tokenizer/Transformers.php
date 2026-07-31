@@ -67,15 +67,13 @@ final class Transformers
                 $transformer->process($tokens, $token, $index);
             }
 
-            if (method_exists($transformer, 'getSlices')) {
-                $slices = $transformer->getSlices();
+            $slices = $transformer->getSlices();
 
-                if ([] !== $slices) {
-                    $tokens->insertSlices($slices);
-                }
-
-                $transformer->resetSlices();
+            if ([] !== $slices) {
+                $tokens->insertSlices($slices);
             }
+
+            $transformer->resetSlices();
         }
 
         $tokens->clearEmptyTokens();

@@ -71,16 +71,4 @@ final class NameQualifiedTransformer extends AbstractTransformer
         $this->slices[$index] = $newTokens;
         $tokens->clearAt($index);
     }
-
-    private array $slices = [];
-
-    public function getSlices(): array
-    {
-        return $this->slices;
-    }
-
-    public function resetSlices(): void
-    {
-        $this->slices = [];
-    }
 }

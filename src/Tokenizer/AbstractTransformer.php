@@ -25,6 +25,11 @@ use PhpCsFixer\Utils;
  */
 abstract class AbstractTransformer implements TransformerInterface
 {
+    /**
+     * @return array<int, list<Token>|Token|Tokens>
+     */
+    private array $slices = [];
+
     public function getName(): string
     {
         $nameParts = explode('\\', static::class);
@@ -39,4 +44,14 @@ abstract class AbstractTransformer implements TransformerInterface
     }
 
     abstract public function getCustomTokens(): array;
+
+    public function getSlices(): array
+    {
+        return $this->slices;
+    }
+
+    public function resetSlices(): void
+    {
+        $this->slices = [];
+    }
 }
