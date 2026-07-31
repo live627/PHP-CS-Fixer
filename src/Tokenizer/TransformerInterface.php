@@ -64,6 +64,13 @@ interface TransformerInterface
     public function getRequiredPhpVersionId(): int;
 
     /**
+     * @return array<int, list<Token>|Token|Tokens>
+     */
+    public function getSlices(): array;
+
+    public function resetSlices(): void;
+
+    /**
      * Process Token to transform it into custom token when needed.
      */
     public function process(Tokens $tokens, Token $token, int $index): void;
