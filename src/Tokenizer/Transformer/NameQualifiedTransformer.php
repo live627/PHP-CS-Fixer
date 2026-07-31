@@ -58,7 +58,7 @@ final class NameQualifiedTransformer extends AbstractTransformer
         \assert('' !== $token->getContent());
         $newTokens = ImportProcessor::tokenizeName($token->getContent());
 
-        foreach ($newTokens[$index] as $offset => $newToken) {
+        foreach ($newTokens as $offset => $newToken) {
 			$this->slices[$index][$index + $offset] = $newToken;
 		}
 
@@ -71,7 +71,7 @@ final class NameQualifiedTransformer extends AbstractTransformer
         $newTokens = ImportProcessor::tokenizeName($token->getContent());
         $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
 
-        foreach ($newTokens[$index] as $offset => $newToken) {
+        foreach ($newTokens as $offset => $newToken) {
 			$this->slices[$index][$index + $offset] = $newToken;
 		}
 
