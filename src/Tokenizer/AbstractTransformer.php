@@ -28,7 +28,7 @@ abstract class AbstractTransformer implements TransformerInterface
     /**
      * @return array<int, list<Token>|Token|Tokens>
      */
-    private array $slices = [];
+    protected array $slices = [];
 
     public function getName(): string
     {
