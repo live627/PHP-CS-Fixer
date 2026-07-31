@@ -63,6 +63,14 @@ final class NameQualifiedTransformerTest extends AbstractTransformerTestCase
             $this->transformer->process($tokens, $tokens[$i], $i);
         }
 
+        $slices = $this->transformer->getSlices();
+
+        if ([] !== $slices) {
+            $tokens->insertSlices($slices);
+        }
+
+        $this->transformer->resetSlices();
+
         var_dump($tokens->toJson());
         $tokens->clearEmptyTokens();
         var_dump($tokens->toJson());
