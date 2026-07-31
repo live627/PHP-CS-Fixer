@@ -207,7 +207,7 @@ abstract class AbstractTransformerTestCase extends TestCase
             self::assertSame(
                 CT::has($tokenIdOrContent) ? CT::getName($tokenIdOrContent) : token_name($tokenIdOrContent),
                 $tokens[$index]->getName(),
-                \sprintf('Token name should be the same. Got token "%s" at index %d.', $tokens[$index]->toJson(), $index),
+                \sprintf('Token name should be the same. Got token "%s" at index %d.', $tokens->toJson(), $index),
             );
 
             self::assertSame(
