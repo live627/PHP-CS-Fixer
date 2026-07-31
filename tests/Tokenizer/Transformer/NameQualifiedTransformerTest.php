@@ -53,7 +53,7 @@ final class NameQualifiedTransformerTest extends AbstractTransformerTestCase
     public function testProcess(array $expected, ?array $input = null): void
     {
         $expectedTokens = Tokens::fromArray($expected);
-        $tokens = null === $inputtoJson
+        $tokens = null === $input
             ? Tokens::fromArray($expected)
             : Tokens::fromArray($input);
 
@@ -70,11 +70,7 @@ final class NameQualifiedTransformerTest extends AbstractTransformerTestCase
         }
 
         $this->transformer->resetSlices();
-
-        var_dump($tokens->toJson());
         $tokens->clearEmptyTokens();
-        var_dump($tokens->toJson());
-        var_dump($expectedTokens->toJson());
 
         self::assertTokens($expectedTokens, $tokens);
 
