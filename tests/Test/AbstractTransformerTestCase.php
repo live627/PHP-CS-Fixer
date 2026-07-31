@@ -110,6 +110,15 @@ abstract class AbstractTransformerTestCase extends TestCase
             $this->transformer->process($tokens, $token, $index);
         }
 
+        $slices = $this->transformer->getSlices();
+
+        if ([] !== $slices) {
+            $tokens->insertSlices($slices);
+        }
+
+        $this->transformer->resetSlices();
+        $tokens->clearEmptyTokens();
+
         self::assertFalse($tokens->isChanged());
     }
 
