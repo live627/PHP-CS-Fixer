@@ -26,7 +26,7 @@ use PhpCsFixer\Utils;
 abstract class AbstractTransformer implements TransformerInterface
 {
     /**
-     * @ver array<int, list<Token>|Token|Tokens>
+     * @var array<int, list<Token>|Token|Tokens>
      */
     protected array $slices = [];
 
