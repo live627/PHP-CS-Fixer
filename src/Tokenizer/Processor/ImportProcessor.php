@@ -92,20 +92,20 @@ final class ImportProcessor
     public static function tokenizeName(string $name): array
     {
         $tokens = [];
-    
+
         if ('\\' === $name[0]) {
             $tokens[] = new Token([\T_NS_SEPARATOR, '\\']);
             $name = substr($name, 1);
         }
-    
+
         foreach (explode('\\', $name) as $i => $part) {
             if ($i > 0) {
                 $tokens[] = new Token([\T_NS_SEPARATOR, '\\']);
             }
-    
+
             $tokens[] = new Token([\T_STRING, $part]);
         }
-    
+
         return $tokens;
     }
 }

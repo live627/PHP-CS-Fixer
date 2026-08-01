@@ -42,7 +42,7 @@ final class NameQualifiedTransformer extends AbstractTransformer
     public function process(Tokens $tokens, Token $token, int $index): void
     {
         $id = $token->getId();
-    
+
         if (
             FCT::T_NAME_QUALIFIED !== $id
             && FCT::T_NAME_FULLY_QUALIFIED !== $id
@@ -50,16 +50,16 @@ final class NameQualifiedTransformer extends AbstractTransformer
         ) {
             return;
         }
-    
+
         $content = $token->getContent();
         \assert('' !== $content);
-    
+
         $newTokens = ImportProcessor::tokenizeName($content);
-    
+
         if (FCT::T_NAME_RELATIVE === $id) {
             $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
         }
-    
+
         $this->slices[$index] = $newTokens;
         $tokens->clearAt($index);
     }
