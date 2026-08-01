@@ -45,12 +45,12 @@ abstract class AbstractTransformer implements TransformerInterface
 
     abstract public function getCustomTokens(): array;
 
-    public function getSlices(): array
+    final public function getSlices(): array
     {
         return $this->slices;
     }
 
-    public function resetSlices(): void
+    final public function resetSlices(): void
     {
         $this->slices = [];
     }
