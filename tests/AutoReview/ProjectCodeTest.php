@@ -41,6 +41,7 @@ use PhpCsFixer\Tests\Test\AbstractIntegrationTestCase;
 use PhpCsFixer\Tests\TestCase;
 use PhpCsFixer\Tests\Tokenizer\CTTest;
 use PhpCsFixer\Tests\Tokenizer\FCTTest;
+use PhpCsFixer\Tokenizer\AbstractTransformer;
 use PhpCsFixer\Tokenizer\FCT;
 use PhpCsFixer\Tokenizer\Token;
 use PhpCsFixer\Tokenizer\Tokens;
@@ -387,6 +388,7 @@ final class ProjectCodeTest extends TestCase
             AbstractPhpdocToTypeDeclarationFixer::class => ['configuration'],
             AbstractPhpdocTypesFixer::class => ['tags'],
             AbstractProxyFixer::class => ['proxyFixers'],
+            AbstractTransformer::class => ['slices'],
             ConfigurableFixerTrait::class => ['configuration'],
             FixCommand::class => ['defaultDescription', 'defaultName'], // @TODO: PHP 8.0+, remove properties and test when PHP 8+ is required
         ];
