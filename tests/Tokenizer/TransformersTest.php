@@ -77,5 +77,18 @@ final class TransformersTest extends TestCase
                 SOURCE,
             [46 => CT::T_USE_TRAIT],
         ];
+
+        // Integration test for NameQualifiedTransformer: ensure a simple qualified name is tokenized
+        // into T_STRING, T_NS_SEPARATOR, T_STRING when parsed via Tokens::fromCode()
+        yield 'name qualified simple' => [
+            <<<'SOURCE'
+                <?php Foo\Bar;
+                SOURCE,
+            [
+                1 => T_STRING,
+                2 => T_NS_SEPARATOR,
+                3 => T_STRING,
+            ],
+        ];
     }
 }
