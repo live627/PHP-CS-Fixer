@@ -85,9 +85,9 @@ final class TransformersTest extends TestCase
                 <?php Foo\Bar;
                 SOURCE,
             [
-                1 => T_STRING,
-                2 => T_NS_SEPARATOR,
-                3 => T_STRING,
+                1 => \T_STRING,
+                2 => \T_NS_SEPARATOR,
+                3 => \T_STRING,
             ],
         ];
     }
