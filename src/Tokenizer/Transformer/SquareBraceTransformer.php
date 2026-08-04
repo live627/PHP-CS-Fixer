@@ -165,12 +165,12 @@ final class SquareBraceTransformer extends AbstractTransformer
 
         if ($prevToken->isGivenKind(\T_DOUBLE_ARROW)) {
             $variableIndex = $tokens->getPrevMeaningfulToken($prevIndex);
-            if (!$tokens[$variableIndex]->isGivenKind(\T_VARIABLE)) {
+            if ($tokens[$variableIndex]->getId() !== \T_VARIABLE) {
                 return false;
             }
 
             $prevVariableIndex = $tokens->getPrevMeaningfulToken($variableIndex);
-            if ($tokens[$prevVariableIndex]->isGivenKind(\T_AS)) {
+            if ($tokens[$prevVariableIndex]->getId() === \T_AS) {
                 return true;
             }
         }
