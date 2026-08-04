@@ -110,6 +110,8 @@ final class SquareBraceTransformer extends AbstractTransformer
         }
 
         $prevToken = $tokens[$tokens->getPrevMeaningfulToken($index)];
+        $prevId = $prevToken->getId();
+        $prevContent = $prevToken->getContent();
         if ($prevToken->equalsAny([
             ')',
             ']',
@@ -143,6 +145,8 @@ final class SquareBraceTransformer extends AbstractTransformer
 
         $prevIndex = $tokens->getPrevMeaningfulToken($index);
         $prevToken = $tokens[$prevIndex];
+        $prevId = $prevToken->getId();
+        $prevContent = $prevToken->getContent();
         if ($prevToken->equalsAny([
             ')',
             ']',
