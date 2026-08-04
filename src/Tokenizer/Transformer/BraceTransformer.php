@@ -29,7 +29,7 @@ use PhpCsFixer\Tokenizer\Tokens;
  * - in `$foo->{$bar}` into CT::T_DYNAMIC_PROP_BRACE_OPEN and CT::T_DYNAMIC_PROP_BRACE_CLOSE,
  * - in `${$foo}` into CT::T_DYNAMIC_VAR_BRACE_OPEN and CT::T_DYNAMIC_VAR_BRACE_CLOSE,
  * - in `$array{$index}` into CT::T_ARRAY_INDEX_BRACE_OPEN and CT::T_ARRAY_INDEX_BRACE_CLOSE,
- * - in `use some\a\{ClassA, ClassB, ClassC as C}` into CT::T_GROUP_IMPORT_BRACE_OPEN, CT::T_GROUP_IMPORT_BRACE_CLOSE,
+ * - in `use some\\a\\{ClassA, ClassB, ClassC as C}` into CT::T_GROUP_IMPORT_BRACE_OPEN, CT::T_GROUP_IMPORT_BRACE_CLOSE,
  * - in `class PropertyHooks { public string $bar _{_ set(string $value) { } _}_` into CT::T_PROPERTY_HOOK_BRACE_OPEN, CT::T_PROPERTY_HOOK_BRACE_CLOSE.
  *
  * @author Dariusz Rumiński <dariusz.ruminski@gmail.com>
@@ -86,7 +86,7 @@ final class BraceTransformer extends AbstractTransformer
     {
         $token = $tokens[$index];
 
-        if (!$token->isGivenKind(\T_CURLY_OPEN)) {
+        if ($token->getId() !== \T_CURLY_OPEN) {
             return;
         }
 
@@ -95,9 +95,9 @@ final class BraceTransformer extends AbstractTransformer
         do {
             ++$index;
 
-            if ($tokens[$index]->equals('{') || $tokens[$index]->isGivenKind(\T_CURLY_OPEN)) { // we count all kind of {
+            if ($tokens[$index]->getContent() === '{' || $tokens[$index]->getId() === \T_CURLY_OPEN) { // we count all kind of {
                 ++$level;
-            } elseif ($tokens[$index]->equals('}')) { // we count all kind of }
+            } elseif ($tokens[$index]->getContent() === '}') { // we count all kind of }
                 --$level;
             }
         } while (0 < $level);
@@ -109,7 +109,7 @@ final class BraceTransformer extends AbstractTransformer
     {
         $token = $tokens[$index];
 
-        if ($token->isGivenKind(\T_DOLLAR_OPEN_CURLY_BRACES)) {
+        if ($token->getId() === \T_DOLLAR_OPEN_CURLY_BRACES) {
             $nextIndex = $tokens->getNextTokenOfKind($index, ['}']);
             $tokens[$nextIndex] = new Token([CT::T_DOLLAR_CLOSE_CURLY_BRACES, '}']);
         }
@@ -123,7 +123,7 @@ final class BraceTransformer extends AbstractTransformer
             return;
         }
 
-        if (!$tokens[$index + 1]->equals('{')) {
+        if ($tokens[$index + 1]->getContent() !== '{') {
             return;
         }
 
@@ -138,7 +138,7 @@ final class BraceTransformer extends AbstractTransformer
     {
         $token = $tokens[$index];
 
-        if (!$token->equals('$')) {
+        if ($token->getContent() !== '$') {
             return;
         }
 
@@ -150,7 +150,7 @@ final class BraceTransformer extends AbstractTransformer
 
         $openToken = $tokens[$openIndex];
 
-        if (!$openToken->equals('{')) {
+        if ($openToken->getContent() !== '{') {
             return;
         }
 
@@ -168,35 +168,45 @@ final class BraceTransformer extends AbstractTransformer
 
         $token = $tokens[$index];
 
-        if (!$token->equals('{')) {
+        if ($token->getContent() !== '{') {
             return;
         }
 
         $nextIndex = $tokens->getNextMeaningfulToken($index);
 
         // skip attributes
-        while ($tokens[$nextIndex]->isGivenKind(FCT::T_ATTRIBUTE)) {
+        while ($tokens[$nextIndex]->getId() === FCT::T_ATTRIBUTE) {
             $nextIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_ATTRIBUTE, $nextIndex);
             $nextIndex = $tokens->getNextMeaningfulToken($nextIndex);
         }
 
-        if (!$tokens[$nextIndex]->equalsAny([
-            [\T_STRING, 'get'],
-            [\T_STRING, 'set'],
-        ], false)) {
+        $nextTok = $tokens[$nextIndex];
+        if (!(
+            $nextTok->getId() === \T_STRING
+            && \in_array(strtolower($nextTok->getContent()), ['get', 'set'], true)
+        )) {
             return;
         }
 
         $nextNextIndex = $tokens->getNextMeaningfulToken($nextIndex);
 
-        if (!$tokens[$nextNextIndex]->equalsAny(['(', '{', ';', [\T_DOUBLE_ARROW]])) {
+        $t = $tokens[$nextNextIndex];
+        $content = $t->getContent();
+
+        if (!(
+            $content === '('
+            || $content === '{'
+            || $content === ';'
+            || $t->getId() === \T_DOUBLE_ARROW
+        )) {
             return;
         }
 
-        if ($tokens[$nextNextIndex]->equals('(')) {
+        if ($content === '(') {
             $closeParenthesisIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $nextNextIndex);
             $afterCloseParenthesisIndex = $tokens->getNextMeaningfulToken($closeParenthesisIndex);
-            if (!$tokens[$afterCloseParenthesisIndex]->equalsAny(['{', [\T_DOUBLE_ARROW]])) {
+            $afterTok = $tokens[$afterCloseParenthesisIndex];
+            if (!($afterTok->getContent() === '{' || $afterTok->getId() === \T_DOUBLE_ARROW)) {
                 return;
             }
         }
@@ -220,34 +230,40 @@ final class BraceTransformer extends AbstractTransformer
 
         $token = $tokens[$index];
 
-        if (!$token->equals('{')) {
+        if ($token->getContent() !== '{') {
             return;
         }
 
         $prevIndex = $tokens->getPrevMeaningfulToken($index);
 
-        if (!$tokens[$prevIndex]->equalsAny([
-            [\T_STRING],
-            [\T_VARIABLE],
-            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
-            ']',
-            ')',
-        ])) {
+        $prevTok = $tokens[$prevIndex];
+        $prevId = $prevTok->getId();
+        $prevContent = $prevTok->getContent();
+
+        if (!(
+            $prevId === \T_STRING
+            || $prevId === \T_VARIABLE
+            || $prevId === CT::T_ARRAY_INDEX_BRACE_CLOSE
+            || $prevContent === ']'
+            || $prevContent === ')'
+        )) {
             return;
         }
 
         if (
-            $tokens[$prevIndex]->isGivenKind(\T_STRING)
+            $prevId === \T_STRING
             && !$tokens[$tokens->getPrevMeaningfulToken($prevIndex)]->isObjectOperator()
         ) {
             return;
         }
 
         if (
-            $tokens[$prevIndex]->equals(')')
-            && !$tokens[$tokens->getPrevMeaningfulToken(
-                $tokens->findBlockStart(Tokens::BLOCK_TYPE_PARENTHESIS, $prevIndex),
-            )]->isGivenKind(\T_ARRAY)
+            $prevContent === ')'
+            && !(
+                $tokens[$tokens->getPrevMeaningfulToken(
+                    $tokens->findBlockStart(Tokens::BLOCK_TYPE_PARENTHESIS, $prevIndex),
+                )]->getId() === \T_ARRAY
+            )
         ) {
             return;
         }
@@ -262,13 +278,13 @@ final class BraceTransformer extends AbstractTransformer
     {
         $token = $tokens[$index];
 
-        if (!$token->equals('{')) {
+        if ($token->getContent() !== '{') {
             return;
         }
 
         $prevIndex = $tokens->getPrevMeaningfulToken($index);
 
-        if (!$tokens[$prevIndex]->isGivenKind(\T_NS_SEPARATOR)) {
+        if ($tokens[$prevIndex]->getId() !== \T_NS_SEPARATOR) {
             return;
         }
 
@@ -286,21 +302,21 @@ final class BraceTransformer extends AbstractTransformer
 
         $token = $tokens[$index];
 
-        if (!$token->equals('{')) {
+        if ($token->getContent() !== '{') {
             return;
         }
 
         $prevMeaningfulTokenIndex = $tokens->getPrevMeaningfulToken($index);
 
-        while (!$tokens[$prevMeaningfulTokenIndex]->isGivenKind(\T_DOUBLE_COLON)) {
-            if (!$tokens[$prevMeaningfulTokenIndex]->equals(')')) {
+        while ($tokens[$prevMeaningfulTokenIndex]->getId() !== \T_DOUBLE_COLON) {
+            if ($tokens[$prevMeaningfulTokenIndex]->getContent() !== ')') {
                 return;
             }
 
             $prevMeaningfulTokenIndex = $tokens->findBlockStart(Tokens::BLOCK_TYPE_PARENTHESIS, $prevMeaningfulTokenIndex);
             $prevMeaningfulTokenIndex = $tokens->getPrevMeaningfulToken($prevMeaningfulTokenIndex);
 
-            if (!$tokens[$prevMeaningfulTokenIndex]->equals('}')) {
+            if ($tokens[$prevMeaningfulTokenIndex]->getContent() !== '}') {
                 return;
             }
 
@@ -311,7 +327,12 @@ final class BraceTransformer extends AbstractTransformer
         $closeIndex = $this->naivelyFindCurlyBlockEnd($tokens, $index);
         $nextMeaningfulTokenIndexAfterCloseIndex = $tokens->getNextMeaningfulToken($closeIndex);
 
-        if (!$tokens[$nextMeaningfulTokenIndexAfterCloseIndex]->equalsAny([';', [\T_CLOSE_TAG], [\T_DOUBLE_COLON]])) {
+        $nextTok = $tokens[$nextMeaningfulTokenIndexAfterCloseIndex];
+        if (!(
+            $nextTok->getContent() === ';'
+            || $nextTok->getId() === \T_CLOSE_TAG
+            || $nextTok->getId() === \T_DOUBLE_COLON
+        )) {
             return;
         }
 
@@ -349,6 +370,8 @@ final class BraceTransformer extends AbstractTransformer
                 --$blockLevel;
 
                 if (0 === $blockLevel) {
+                    // if token has been transformed to a custom token type, its content may still be '}',
+                    // but it is not the plain '}' token we expect here
                     if (!$token->equals('}')) {
                         throw new \UnexpectedValueException(\sprintf('Detected block end for index: "%s" was already transformed into other token type: "%s".', $startIndex, $token->getName()));
                     }
