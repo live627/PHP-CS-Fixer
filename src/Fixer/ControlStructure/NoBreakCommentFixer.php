@@ -131,7 +131,6 @@ final class NoBreakCommentFixer extends AbstractFixer implements ConfigurableFix
     protected function applyFix(\SplFileInfo $file, Tokens $tokens): void
     {
         $analyzer = new TokensAnalyzer($tokens);
-        $slices = [];
 
         for ($index = \count($tokens) - 1; $index >= 0; --$index) {
             if ($tokens[$index]->isGivenKind(\T_DEFAULT)) {
@@ -145,16 +144,11 @@ final class NoBreakCommentFixer extends AbstractFixer implements ConfigurableFix
                 continue;
             }
 
-            $this->fixCase($tokens, $tokens->getNextTokenOfKind($index, [':', ';']), $slices);
-        }
-
-        if ([] !== $slices) {
-            $tokens->insertSlices($slices);
-            $tokens->clearEmptyTokens();
+            $this->fixCase($tokens, $tokens->getNextTokenOfKind($index, [':', ';']));
         }
     }
 
-    private function fixCase(Tokens $tokens, int $casePosition, array & $slices): void
+    private function fixCase(Tokens $tokens, int $casePosition): void
     {
         $empty = true;
         $fallThrough = true;
@@ -206,7 +200,7 @@ final class NoBreakCommentFixer extends AbstractFixer implements ConfigurableFix
                     }
 
                     if (null === $commentPosition) {
-                        $this->insertCommentAt($tokens, $i, $slices);
+                        $this->insertCommentAt($tokens, $i);
                     } else {
                         $text = $this->configuration['comment_text'];
                         $tokens[$commentPosition] = new Token([
@@ -214,7 +208,7 @@ final class NoBreakCommentFixer extends AbstractFixer implements ConfigurableFix
                             str_ireplace($text, $text, $tokens[$commentPosition]->getContent()),
                         ]);
 
-                        $this->ensureNewLineAt($tokens, $commentPosition, $slices);
+                        $this->ensureNewLineAt($tokens, $commentPosition);
                     }
                 } elseif (null !== $commentPosition) {
                     $this->removeComment($tokens, $commentPosition);
@@ -240,10 +234,10 @@ final class NoBreakCommentFixer extends AbstractFixer implements ConfigurableFix
         return Preg::match("~^((//|#)\\s*{$text}\\s*)|(/\\*\\*?\\s*{$text}(\\s+.*)*\\*/)$~i", $token->getContent());
     }
 
-    private function insertCommentAt(Tokens $tokens, int $casePosition, array & $slices): void
+    private function insertCommentAt(Tokens $tokens, int $casePosition): void
     {
         $lineEnding = $this->whitespacesConfig->getLineEnding();
-        $newlinePosition = $this->ensureNewLineAt($tokens, $casePosition, $slices);
+        $newlinePosition = $this->ensureNewLineAt($tokens, $casePosition);
         $newlineToken = $tokens[$newlinePosition];
         $nbNewlines = substr_count($newlineToken->getContent(), $lineEnding);
 
@@ -263,31 +257,17 @@ final class NoBreakCommentFixer extends AbstractFixer implements ConfigurableFix
 
             $indent = WhitespacesAnalyzer::detectIndent($tokens, $newlinePosition - 1);
             $tokens[$newlinePosition] = new Token([$newlineToken->getId(), $matches[1].$lineEnding.$indent]);
-
-            $pos = $newlinePosition + 1;
-            $whitespaceToken = new Token([\T_WHITESPACE, $matches[2]]);
-            if (isset($slices[$pos])) {
-                // later insertAt calls at same position would have put items before existing ones; keep that order
-                $slices[$pos] = array_merge([$whitespaceToken], $slices[$pos]);
-            } else {
-                $slices[$pos] = [$whitespaceToken];
-            }
+            $tokens->insertAt(++$newlinePosition, new Token([\T_WHITESPACE, $matches[2]]));
         }
 
-        $commentToken = new Token([\T_COMMENT, '// '.$this->configuration['comment_text']]);
-        if (isset($slices[$newlinePosition])) {
-            $slices[$newlinePosition] = array_merge([$commentToken], $slices[$newlinePosition]);
-        } else {
-            $slices[$newlinePosition] = [$commentToken];
-        }
-
-        $this->ensureNewLineAt($tokens, $newlinePosition, $slices);
+        $tokens->insertAt($newlinePosition, new Token([\T_COMMENT, '// '.$this->configuration['comment_text']]));
+        $this->ensureNewLineAt($tokens, $newlinePosition);
     }
 
     /**
      * @return int The newline token position
      */
-    private function ensureNewLineAt(Tokens $tokens, int $position, array & $slices): int
+    private function ensureNewLineAt(Tokens $tokens, int $position): int
     {
         $lineEnding = $this->whitespacesConfig->getLineEnding();
         $content = $lineEnding.WhitespacesAnalyzer::detectIndent($tokens, $position);
@@ -303,12 +283,7 @@ final class NoBreakCommentFixer extends AbstractFixer implements ConfigurableFix
             }
 
             if ('' !== $content) {
-                $tok = new Token([\T_WHITESPACE, $content]);
-                if (isset($slices[$position])) {
-                    $slices[$position] = array_merge([$tok], $slices[$position]);
-                } else {
-                    $slices[$position] = [$tok];
-                }
+                $tokens->insertAt($position, new Token([\T_WHITESPACE, $content]));
 
                 return $position;
             }
