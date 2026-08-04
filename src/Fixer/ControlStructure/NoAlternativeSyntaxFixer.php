@@ -89,18 +89,11 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
 
     protected function applyFix(\SplFileInfo $file, Tokens $tokens): void
     {
-        $slices = [];
-
         for ($index = \count($tokens) - 1; 0 <= $index; --$index) {
             $token = $tokens[$index];
-            $this->fixElseif($index, $token, $tokens, $slices);
-            $this->fixElse($index, $token, $tokens, $slices);
-            $this->fixOpenCloseControls($index, $token, $tokens, $slices);
-        }
-
-        if ([] !== $slices) {
-            $tokens->insertSlices($slices);
-            $tokens->clearEmptyTokens();
+            $this->fixElseif($index, $token, $tokens);
+            $this->fixElse($index, $token, $tokens);
+            $this->fixOpenCloseControls($index, $token, $tokens);
         }
     }
 
@@ -122,7 +115,7 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
      * @param Token  $token  the token being processed
      * @param Tokens $tokens the collection of tokens
      */
-    private function fixOpenCloseControls(int $index, Token $token, Tokens $tokens, array & $slices): void
+    private function fixOpenCloseControls(int $index, Token $token, Tokens $tokens): void
     {
         if ($token->isGivenKind([\T_IF, \T_FOREACH, \T_WHILE, \T_FOR, \T_SWITCH, \T_DECLARE])) {
             $openIndex = $tokens->getNextTokenOfKind($index, ['(']);
@@ -147,9 +140,7 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
             }
 
             $tokens->clearAt($afterParenthesisIndex);
--            $tokens->insertAt($afterParenthesisIndex, $items);
-+            $slices[$afterParenthesisIndex] = $items;
-+            // token was cleared above, schedule insertion
+            $tokens->insertAt($afterParenthesisIndex, $items);
         }
 
         if (!$token->isGivenKind([\T_ENDIF, \T_ENDFOREACH, \T_ENDWHILE, \T_ENDFOR, \T_ENDSWITCH, \T_ENDDECLARE])) {
@@ -172,7 +163,7 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
      * @param Token  $token  the token being processed
      * @param Tokens $tokens the collection of tokens
      */
-    private function fixElse(int $index, Token $token, Tokens $tokens, array & $slices): void
+    private function fixElse(int $index, Token $token, Tokens $tokens): void
     {
         if (!$token->isGivenKind(\T_ELSE)) {
             return;
@@ -185,7 +176,7 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
             return;
         }
 
-        $this->addBraces($tokens, new Token([\T_ELSE, 'else']), $index, $tokenAfterElseIndex, $slices);
+        $this->addBraces($tokens, new Token([\T_ELSE, 'else']), $index, $tokenAfterElseIndex);
     }
 
     /**
@@ -195,7 +186,7 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
      * @param Token  $token  the token being processed
      * @param Tokens $tokens the collection of tokens
      */
-    private function fixElseif(int $index, Token $token, Tokens $tokens, array & $slices): void
+    private function fixElseif(int $index, Token $token, Tokens $tokens): void
     {
         if (!$token->isGivenKind(\T_ELSEIF)) {
             return;
@@ -209,7 +200,7 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
             return;
         }
 
-        $this->addBraces($tokens, new Token([\T_ELSEIF, 'elseif']), $index, $tokenAfterParenthesisIndex, $slices);
+        $this->addBraces($tokens, new Token([\T_ELSEIF, 'elseif']), $index, $tokenAfterParenthesisIndex);
     }
 
     /**
@@ -220,7 +211,7 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
      * @param int    $index      the current token index
      * @param int    $colonIndex the index of the colon
      */
-    private function addBraces(Tokens $tokens, Token $token, int $index, int $colonIndex, array & $slices): void
+    private function addBraces(Tokens $tokens, Token $token, int $index, int $colonIndex): void
     {
         $items = [
             new Token('}'),
@@ -233,16 +224,13 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
         }
 
         $tokens->clearAt($index);
--        $tokens->insertAt(
--            $index,
--            $items,
--        );
-+        $slices[$index] = $items;
-+        // increment the position of the colon by number of items inserted
-        
--        // increment the position of the colon by number of items inserted
--        $colonIndex += \count($items);
-+        $colonIndex += \count($items);
+        $tokens->insertAt(
+            $index,
+            $items,
+        );
+
+        // increment the position of the colon by number of items inserted
+        $colonIndex += \count($items);
 
         $items = [new Token('{')];
 
@@ -251,10 +239,9 @@ final class NoAlternativeSyntaxFixer extends AbstractFixer implements Configurab
         }
 
         $tokens->clearAt($colonIndex);
--        $tokens->insertAt(
--            $colonIndex,
--            $items,
--        );
-+        $slices[$colonIndex] = $items;
+        $tokens->insertAt(
+            $colonIndex,
+            $items,
+        );
     }
 }
