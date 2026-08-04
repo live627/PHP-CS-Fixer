@@ -139,7 +139,7 @@ final class SquareBraceTransformer extends AbstractTransformer
 
     private function isArrayDestructing(Tokens $tokens, int $index): bool
     {
-        if (!$tokens[$index]->equals('[')) {
+        if ($tokens[$index]->getContent() !== '[') {
             return false;
         }
 
@@ -147,27 +147,28 @@ final class SquareBraceTransformer extends AbstractTransformer
         $prevToken = $tokens[$prevIndex];
         $prevId = $prevToken->getId();
         $prevContent = $prevToken->getContent();
-        if ($prevToken->equalsAny([
-            ')',
-            ']',
-            '"',
-            [\T_CONSTANT_ENCAPSED_STRING],
-            [\T_STRING],
-            [\T_STRING_VARNAME],
-            [\T_VARIABLE],
-            [CT::T_ARRAY_BRACKET_CLOSE],
-            [CT::T_DYNAMIC_PROP_BRACE_CLOSE],
-            [CT::T_DYNAMIC_VAR_BRACE_CLOSE],
-            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
-        ])) {
+
+        if (
+            $prevContent === ')'
+            || $prevContent === ']'
+            || $prevContent === '"'
+            || $prevId === \T_CONSTANT_ENCAPSED_STRING
+            || $prevId === \T_STRING
+            || $prevId === \T_STRING_VARNAME
+            || $prevId === \T_VARIABLE
+            || $prevId === CT::T_ARRAY_BRACKET_CLOSE
+            || $prevId === CT::T_DYNAMIC_PROP_BRACE_CLOSE
+            || $prevId === CT::T_DYNAMIC_VAR_BRACE_CLOSE
+            || $prevId === CT::T_ARRAY_INDEX_BRACE_CLOSE
+        ) {
             return false;
         }
 
-        if ($prevToken->isGivenKind(\T_AS)) {
+        if ($prevId === \T_AS) {
             return true;
         }
 
-        if ($prevToken->isGivenKind(\T_DOUBLE_ARROW)) {
+        if ($prevId === \T_DOUBLE_ARROW) {
             $variableIndex = $tokens->getPrevMeaningfulToken($prevIndex);
             if ($tokens[$variableIndex]->getId() !== \T_VARIABLE) {
                 return false;
