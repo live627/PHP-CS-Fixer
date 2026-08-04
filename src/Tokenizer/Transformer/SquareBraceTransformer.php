@@ -90,9 +90,15 @@ final class SquareBraceTransformer extends AbstractTransformer
         $index = $tokens->getNextMeaningfulToken($index);
 
         while ($index < $endIndex) {
-            if ($tokens[$index]->equals('[') && $tokens[$previousMeaningfulIndex]->equalsAny([[CT::T_DESTRUCTURING_BRACKET_OPEN], ','])) {
-                $tokens[$tokens->findBlockEnd(Tokens::BLOCK_TYPE_INDEX_BRACKET, $index)] = new Token([CT::T_DESTRUCTURING_BRACKET_CLOSE, ']']);
-                $tokens[$index] = new Token([CT::T_DESTRUCTURING_BRACKET_OPEN, '[']);
+            if ($tokens[$index]->getContent() === '[') {
+                $prev = $tokens[$previousMeaningfulIndex];
+                $prevId = $prev->getId();
+                $prevContent = $prev->getContent();
+
+                if ($prevId === CT::T_DESTRUCTURING_BRACKET_OPEN || $prevContent === ',') {
+                    $tokens[$tokens->findBlockEnd(Tokens::BLOCK_TYPE_INDEX_BRACKET, $index)] = new Token([CT::T_DESTRUCTURING_BRACKET_CLOSE, ']']);
+                    $tokens[$index] = new Token([CT::T_DESTRUCTURING_BRACKET_OPEN, '[']);
+                }
             }
 
             $previousMeaningfulIndex = $index;
@@ -105,30 +111,35 @@ final class SquareBraceTransformer extends AbstractTransformer
      */
     private function isShortArray(Tokens $tokens, int $index): bool
     {
-        if (!$tokens[$index]->equals('[')) {
+        if ($tokens[$index]->getContent() !== '[') {
             return false;
         }
 
-        $prevToken = $tokens[$tokens->getPrevMeaningfulToken($index)];
-        if ($prevToken->equalsAny([
-            ')',
-            ']',
-            '}',
-            '"',
-            [\T_CONSTANT_ENCAPSED_STRING],
-            [\T_STRING],
-            [\T_STRING_VARNAME],
-            [\T_VARIABLE],
-            [CT::T_ARRAY_BRACKET_CLOSE],
-            [CT::T_DYNAMIC_PROP_BRACE_CLOSE],
-            [CT::T_DYNAMIC_VAR_BRACE_CLOSE],
-            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
-        ])) {
+        $prevIndex = $tokens->getPrevMeaningfulToken($index);
+        $prevToken = $tokens[$prevIndex];
+        $prevId = $prevToken->getId();
+        $prevContent = $prevToken->getContent();
+
+        if (
+            $prevContent === ')'
+            || $prevContent === ']'
+            || $prevContent === '}'
+            || $prevContent === '"'
+            || $prevId === \T_CONSTANT_ENCAPSED_STRING
+            || $prevId === \T_STRING
+            || $prevId === \T_STRING_VARNAME
+            || $prevId === \T_VARIABLE
+            || $prevId === CT::T_ARRAY_BRACKET_CLOSE
+            || $prevId === CT::T_DYNAMIC_PROP_BRACE_CLOSE
+            || $prevId === CT::T_DYNAMIC_VAR_BRACE_CLOSE
+            || $prevId === CT::T_ARRAY_INDEX_BRACE_CLOSE
+        ) {
             return false;
         }
 
-        $nextToken = $tokens[$tokens->getNextMeaningfulToken($index)];
-        if ($nextToken->equals(']')) {
+        $nextIndex = $tokens->getNextMeaningfulToken($index);
+        $nextToken = $tokens[$nextIndex];
+        if ($nextToken->getContent() === ']') {
             return true;
         }
 
@@ -137,40 +148,43 @@ final class SquareBraceTransformer extends AbstractTransformer
 
     private function isArrayDestructing(Tokens $tokens, int $index): bool
     {
-        if (!$tokens[$index]->equals('[')) {
+        if ($tokens[$index]->getContent() !== '[') {
             return false;
         }
 
         $prevIndex = $tokens->getPrevMeaningfulToken($index);
         $prevToken = $tokens[$prevIndex];
-        if ($prevToken->equalsAny([
-            ')',
-            ']',
-            '"',
-            [\T_CONSTANT_ENCAPSED_STRING],
-            [\T_STRING],
-            [\T_STRING_VARNAME],
-            [\T_VARIABLE],
-            [CT::T_ARRAY_BRACKET_CLOSE],
-            [CT::T_DYNAMIC_PROP_BRACE_CLOSE],
-            [CT::T_DYNAMIC_VAR_BRACE_CLOSE],
-            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
-        ])) {
+        $prevId = $prevToken->getId();
+        $prevContent = $prevToken->getContent();
+
+        if (
+            $prevContent === ')'
+            || $prevContent === ']'
+            || $prevContent === '"'
+            || $prevId === \T_CONSTANT_ENCAPSED_STRING
+            || $prevId === \T_STRING
+            || $prevId === \T_STRING_VARNAME
+            || $prevId === \T_VARIABLE
+            || $prevId === CT::T_ARRAY_BRACKET_CLOSE
+            || $prevId === CT::T_DYNAMIC_PROP_BRACE_CLOSE
+            || $prevId === CT::T_DYNAMIC_VAR_BRACE_CLOSE
+            || $prevId === CT::T_ARRAY_INDEX_BRACE_CLOSE
+        ) {
             return false;
         }
 
-        if ($prevToken->isGivenKind(\T_AS)) {
+        if ($prevId === \T_AS) {
             return true;
         }
 
-        if ($prevToken->isGivenKind(\T_DOUBLE_ARROW)) {
+        if ($prevId === \T_DOUBLE_ARROW) {
             $variableIndex = $tokens->getPrevMeaningfulToken($prevIndex);
-            if (!$tokens[$variableIndex]->isGivenKind(\T_VARIABLE)) {
+            if ($tokens[$variableIndex]->getId() !== \T_VARIABLE) {
                 return false;
             }
 
             $prevVariableIndex = $tokens->getPrevMeaningfulToken($variableIndex);
-            if ($tokens[$prevVariableIndex]->isGivenKind(\T_AS)) {
+            if ($tokens[$prevVariableIndex]->getId() === \T_AS) {
                 return true;
             }
         }
@@ -180,6 +194,6 @@ final class SquareBraceTransformer extends AbstractTransformer
 
         $nextToken = $tokens[$tokens->getNextMeaningfulToken($end)];
 
-        return $nextToken->equals('=');
+        return $nextToken->getContent() === '=';
     }
 }
