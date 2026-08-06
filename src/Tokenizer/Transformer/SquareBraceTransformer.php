@@ -110,8 +110,6 @@ final class SquareBraceTransformer extends AbstractTransformer
         }
 
         $prevToken = $tokens[$tokens->getPrevMeaningfulToken($index)];
-        $prevId = $prevToken->getId();
-        $prevContent = $prevToken->getContent();
         if ($prevToken->equalsAny([
             ')',
             ']',
@@ -145,37 +143,34 @@ final class SquareBraceTransformer extends AbstractTransformer
 
         $prevIndex = $tokens->getPrevMeaningfulToken($index);
         $prevToken = $tokens[$prevIndex];
-        $prevId = $prevToken->getId();
-        $prevContent = $prevToken->getContent();
-
-        if (
-            $prevContent === ')'
-            || $prevContent === ']'
-            || $prevContent === '"'
-            || $prevId === \T_CONSTANT_ENCAPSED_STRING
-            || $prevId === \T_STRING
-            || $prevId === \T_STRING_VARNAME
-            || $prevId === \T_VARIABLE
-            || $prevId === CT::T_ARRAY_BRACKET_CLOSE
-            || $prevId === CT::T_DYNAMIC_PROP_BRACE_CLOSE
-            || $prevId === CT::T_DYNAMIC_VAR_BRACE_CLOSE
-            || $prevId === CT::T_ARRAY_INDEX_BRACE_CLOSE
-        ) {
+        if ($prevToken->equalsAny([
+            ')',
+            ']',
+            '"',
+            [\T_CONSTANT_ENCAPSED_STRING],
+            [\T_STRING],
+            [\T_STRING_VARNAME],
+            [\T_VARIABLE],
+            [CT::T_ARRAY_BRACKET_CLOSE],
+            [CT::T_DYNAMIC_PROP_BRACE_CLOSE],
+            [CT::T_DYNAMIC_VAR_BRACE_CLOSE],
+            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
+        ])) {
             return false;
         }
 
-        if ($prevId === \T_AS) {
+        if ($prevToken->isGivenKind(\T_AS)) {
             return true;
         }
 
-        if ($prevId === \T_DOUBLE_ARROW) {
+        if ($prevToken->isGivenKind(\T_DOUBLE_ARROW)) {
             $variableIndex = $tokens->getPrevMeaningfulToken($prevIndex);
-            if ($tokens[$variableIndex]->getId() !== \T_VARIABLE) {
+            if (!$tokens[$variableIndex]->isGivenKind(\T_VARIABLE)) {
                 return false;
             }
 
             $prevVariableIndex = $tokens->getPrevMeaningfulToken($variableIndex);
-            if ($tokens[$prevVariableIndex]->getId() === \T_AS) {
+            if ($tokens[$prevVariableIndex]->isGivenKind(\T_AS)) {
                 return true;
             }
         }
