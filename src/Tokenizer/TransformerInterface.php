@@ -68,6 +68,13 @@ interface TransformerInterface
      */
     public function getSlices(): array;
 
+    /**
+     * Returns whether this transformer should act upon this token collection.
+     *
+     * @see FixerInterface::isCandidate()
+     */
+    public function isCandidate(Tokens $tokens): bool;
+
     public function resetSlices(): void;
 
     /**
