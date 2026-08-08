@@ -49,8 +49,6 @@ final class NameQualifiedTransformer extends AbstractTransformer
         return $tokens->isAnyTokenKindsFound([FCT::T_NAME_QUALIFIED, FCT::T_NAME_FULLY_QUALIFIED, FCT::T_NAME_RELATIVE]);
     }
 
-    private array $slices = [];
-
 public function process(Tokens $tokens, Token $token, int $index): void
 { 
     $id = $token->getId();
