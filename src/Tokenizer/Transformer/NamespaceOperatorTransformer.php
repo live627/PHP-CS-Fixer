@@ -35,12 +35,18 @@ final class NamespaceOperatorTransformer extends AbstractTransformer
         return 5_03_00;
     }
 
+    public function getCandidateKinds(): array
+    {
+        return [\T_NAMESPACE];
+    }
+
+    public function isCandidate(Tokens $tokens): bool
+    {
+        return $tokens->isTokenKindFound(\T_NAMESPACE);
+    }
+
     public function process(Tokens $tokens, Token $token, int $index): void
     {
-        if (!$token->isGivenKind(\T_NAMESPACE)) {
-            return;
-        }
-
         $nextIndex = $tokens->getNextMeaningfulToken($index);
 
         if ($tokens[$nextIndex]->isGivenKind(\T_NS_SEPARATOR)) {

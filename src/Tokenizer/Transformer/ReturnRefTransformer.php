@@ -35,6 +35,11 @@ final class ReturnRefTransformer extends AbstractTransformer
         return 5_00_00;
     }
 
+    public function getCandidateKinds(): array
+    {
+        return [\T_FUNCTION, \T_FN];
+    }
+
     public function isCandidate(Tokens $tokens): bool
     {
         return $tokens->isAnyTokenKindsFound([\T_FUNCTION, \T_FN]);

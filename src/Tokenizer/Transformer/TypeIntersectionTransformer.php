@@ -40,6 +40,11 @@ final class TypeIntersectionTransformer extends AbstractTypeTransformer
         return 8_01_00;
     }
 
+    public function getCandidateKinds(): array
+    {
+        return [\T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG];
+    }
+
     public function isCandidate(Tokens $tokens): bool
     {
         return $tokens->isTokenKindFound(\T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG);

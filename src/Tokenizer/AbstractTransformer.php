@@ -50,6 +50,11 @@ abstract class AbstractTransformer implements TransformerInterface
         return $this->slices;
     }
 
+    public function getCandidateKinds(): array
+    {
+        return [];
+    }
+
     public function isCandidate(Tokens $tokens): bool
     {
         return true;

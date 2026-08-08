@@ -69,6 +69,15 @@ interface TransformerInterface
     public function getSlices(): array;
 
     /**
+     * Returns token kinds for this transformer to act upon.
+     *
+     * @see FixerInterface::isGivenKind()
+     *
+     * @return list<int>
+     */
+    public function getCandidateKinds(): array;
+
+    /**
      * Returns whether this transformer should act upon this token collection.
      *
      * @see FixerInterface::isCandidate()

@@ -68,7 +68,9 @@ final class Transformers
             }
 
             foreach ($tokens as $index => $token) {
-                $transformer->process($tokens, $token, $index);
+                if ([] === $candidates || $token->isGivenKind($candidates)) {
+                    $transformer->process($tokens, $token, $index);
+                }
             }
 
             $slices = $transformer->getSlices();
