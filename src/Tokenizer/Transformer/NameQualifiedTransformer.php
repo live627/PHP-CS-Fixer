@@ -55,102 +55,29 @@ public function process(Tokens $tokens, Token $token, int $index): void
 { 
     $id = $token->getId();
 
-    if (
-        FCT::T_NAME_QUALIFIED !== $id
-        && FCT::T_NAME_FULLY_QUALIFIED !== $id
-        && FCT::T_NAME_RELATIVE !== $id
-    ) {
-        return;
-    }
+        if (
+            FCT::T_NAME_QUALIFIED !== $id
+            && FCT::T_NAME_FULLY_QUALIFIED !== $id
+            && FCT::T_NAME_RELATIVE !== $id
+        ) {
+            return;
+        }
 
-    $content = $token->getContent();
-    \assert('' !== $content);
+        $content = $token->getContent();
+        \assert('' !== $content);
 
-    $newTokens = ImportProcessor::tokenizeName($content);
+        $newTokens = ImportProcessor::tokenizeName($content);
 
-    if (FCT::T_NAME_RELATIVE === $id) {
-        $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
-    }
+        if (FCT::T_NAME_RELATIVE === $id) {
+            $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
+        }
 
-    $this->slices[$index] = $newTokens;
-    $tokens->clearAt($index);
+        $this->slices[$index] = $newTokens;
+        $tokens->clearAt($index);
     }
 
     public function getCustomTokens(): array
     {
         return [];
     }
-
-    private function transformQualified(Tokens $tokens, Token $token, int $index): void
-    {
-        //~ \assert('' !== $token->getContent());
-        //~ $newTokens = ImportProcessor::tokenizeName($token->getContent());
-
-        //~ $this->slices[$index] = $newTokens;
-        //~ $tokens->clearAt($index);
-    }
-
-    private function transformRelative(Tokens $tokens, Token $token, int $index): void
-    {
-        //~ \assert('' !== $token->getContent());
-        //~ $newTokens = ImportProcessor::tokenizeName($token->getContent());
-        //~ $newTokens[0] = new Token([\T_NAMESPACE, 'namespace']);
-
-        //~ $this->slices[$index] = $newTokens;
-        //~ $tokens->clearAt($index);
-    }
-
-
-    /**
-     * @return array<int, list<Token>|Token|Tokens>
-     */
-    public function getSlices(): array
-    {
-        return $this->slices;
-    }
-
-    public function resetSlices(): void
-    {
-        $this->slices = [];
-    }
-
-private static array $profile = [
-    'getId' => ['time' => 0, 'calls' => 0],
-    'candidateCheck' => ['time' => 0, 'calls' => 0],
-    'tokenizeName'   => ['time' => 0, 'calls' => 0],
-    'relativePatch'  => ['time' => 0, 'calls' => 0],
-    'storeSlice'     => ['time' => 0, 'calls' => 0],
-    'isGivenKind'     => ['time' => 0, 'calls' => 0],
-];
-
-private static bool $registeredShutdown = false;
-
-private static function registerProfiler(): void
-{
-    if (self::$registeredShutdown) {
-        return;
-    }
-
-    self::$registeredShutdown = true;
-
-    register_shutdown_function(static function (): void {
-        foreach (self::$profile as $name => $stats) {
-            if (0 === $stats['calls']) {
-                continue;
-            }
-
-            $totalMs = $stats['time'] / 1_000_000;
-            $avgUs = $stats['time'] / $stats['calls'] / 1_000;
-
-            fprintf(
-                STDERR,
-                "%-20s calls=%8d total=%10.3f ms avg=%8.3f µs\n",
-                $name,
-                $stats['calls'],
-                $totalMs,
-                $avgUs,
-            );
-        }
-    });
-}
 }
