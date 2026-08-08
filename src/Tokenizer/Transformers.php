@@ -67,6 +67,8 @@ final class Transformers
                 continue;
             }
 
+            $candidates = $transformer->getCandidateKinds();
+
             foreach ($tokens as $index => $token) {
                 if ([] === $candidates || $token->isGivenKind($candidates)) {
                     $transformer->process($tokens, $token, $index);
