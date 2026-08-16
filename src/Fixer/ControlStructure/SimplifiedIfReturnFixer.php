@@ -41,7 +41,6 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
     /**
      * {@inheritdoc}
      *
-     * Must run before MultilineWhitespaceBeforeSemicolonsFixer, NoSinglelineWhitespaceBeforeSemicolonsFixer.
      * Must run after NoSuperfluousElseifFixer, NoUnneededBracesFixer, NoUnneededCurlyBracesFixer, NoUselessElseFixer, SemicolonAfterInstructionFixer.
      */
     public function getPriority(): int
@@ -80,17 +79,14 @@ final class SimplifiedIfReturnFixer extends AbstractFixer
                 continue;
             }
 
-            if ($match['indices'][0] !== $firstCandidateIndex) {
-                continue;
-            }
-
             $indicesToClear = $match['indices'];
-            array_pop($indicesToClear); // Preserve last semicolon
+            $lastSemicolonIndex = array_pop($indicesToClear); // Preserve last semicolon
             rsort($indicesToClear);
 
             foreach ($indicesToClear as $index) {
                 $tokens->clearTokenAndMergeSurroundingWhitespace($index);
             }
+            $tokens->removeLeadingWhitespace($lastSemicolonIndex);
 
             $newTokens = [
                 new Token([\T_RETURN, 'return']),
