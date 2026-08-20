@@ -62,8 +62,39 @@ final class Transformers
      */
     public function transform(Tokens $tokens): void
     {
+        static $times = [];
+        static $calls = [];
+        static $registered = false;
+
+        if (!$registered) {
+            $registered = true;
+
+            register_shutdown_function(static function () use (&$times, &$calls): void {
+                arsort($times);
+
+                foreach ($times as $class => $total) {
+                    printf(
+                        "%-40s %10.3f ms (%6d calls, %8.3f µs/call)\n",
+                        substr($class, strrpos($class, '\\') + 1),
+                        $total / 1_000_000,
+                        $calls[$class],
+                        $total / $calls[$class] / 1_000
+                    );
+                }
+            });
+        }
+
         foreach ($this->items as $transformer) {
+            $class = $transformer::class;
+
+            $start = hrtime(true);
+
             $transformer->process($tokens);
+
+            $elapsed = hrtime(true) - $start;
+
+            $times[$class] = ($times[$class] ?? 0) + $elapsed;
+            $calls[$class] = ($calls[$class] ?? 0) + 1;
         }
     }
 
