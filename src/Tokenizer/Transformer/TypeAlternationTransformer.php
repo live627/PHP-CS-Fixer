@@ -47,18 +47,17 @@ final class TypeAlternationTransformer extends AbstractTypeTransformer
         return $tokens->isTokenKindFound('|');
     }
 
-    public function processToken(Tokens $tokens, Token $token, int $index): void
+    public function process(Tokens $tokens): void
     {
-        $this->doProcess($tokens, $index, '|');
+        foreach ($tokens as $index => $token) {
+            if ($token->equals('|') && $this->isPartOfType($tokens, $index)) {
+                $tokens[$index] = new Token([CT::T_TYPE_ALTERNATION, '|']);
+            }
+        }
     }
 
     public function getCustomTokens(): array
     {
         return [CT::T_TYPE_ALTERNATION];
-    }
-
-    protected function replaceToken(Tokens $tokens, int $index): void
-    {
-        $tokens[$index] = new Token([CT::T_TYPE_ALTERNATION, '|']);
     }
 }
