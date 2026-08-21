@@ -49,8 +49,12 @@ final class BraceClassInstantiationTransformer extends AbstractTransformer
 
     public function process(Tokens $tokens): void
     {
-        foreach ($tokens as $index => $token) {
-            if (!$tokens[$index]->equals('(') || !$tokens[$tokens->getNextMeaningfulToken($index)]->isGivenKind(\T_NEW)) {
+        $index = 0;
+        $count = $tokens->count();
+
+        while ($index < $count) {
+            if (!$tokens[$index]->equals('(') || !$tokens[$tokens->getNextMeaningfulToken($index)]->isGivenKind(\T_NEW) {
+                ++$index;
                 continue;
             }
 
@@ -76,13 +80,28 @@ final class BraceClassInstantiationTransformer extends AbstractTransformer
                     \T_WHILE,
                 ])
             ) {
+                ++$index;
                 continue;
             }
 
-            $closeIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $index);
+            $closeIndex = $tokens->findBlockEnd(
+                Tokens::BLOCK_TYPE_PARENTHESIS,
+                $index,
+            );
 
-            $tokens[$index] = new Token([CT::T_CLASS_INSTANTIATION_PARENTHESIS_OPEN, '(']);
-            $tokens[$closeIndex] = new Token([CT::T_CLASS_INSTANTIATION_PARENTHESIS_CLOSE, ')']);
+            $tokens[$index] = new Token([
+                CT::T_CLASS_INSTANTIATION_PARENTHESIS_OPEN,
+                '(',
+            ]);
+
+            $tokens[$closeIndex] = new Token([
+                CT::T_CLASS_INSTANTIATION_PARENTHESIS_CLOSE,
+                ')',
+            ]);
+
+            // Nothing inside this pair can be a candidate opening
+            // parenthesis for this transformation.
+            $index = $closeIndex + 1;
         }
     }
 
