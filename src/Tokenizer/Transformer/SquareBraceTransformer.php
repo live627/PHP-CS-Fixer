@@ -53,16 +53,19 @@ final class SquareBraceTransformer extends AbstractTransformer
         return $tokens->isTokenKindFound('[');
     }
 
-    public function processToken(Tokens $tokens, Token $token, int $index): void
+    public function process(Tokens $tokens): void
     {
-        if ($this->isArrayDestructing($tokens, $index)) {
-            $this->transformIntoDestructuringSquareBrace($tokens, $index);
+        $index = 0;
+        $count = $tokens->count();
 
-            return;
-        }
-
-        if ($this->isShortArray($tokens, $index)) {
-            $this->transformIntoArraySquareBrace($tokens, $index);
+        while ($index < $count) {
+            if ($this->isArrayDestructing($tokens, $index)) {
+                $index = $this->transformIntoDestructuringSquareBrace($tokens, $index) + 1;
+            } elseif ($this->isShortArray($tokens, $index)) {
+                $index = $this->transformIntoArraySquareBrace($tokens, $index) + 1;
+            } else {
+                ++$index;
+            }
         }
     }
 
@@ -76,15 +79,17 @@ final class SquareBraceTransformer extends AbstractTransformer
         ];
     }
 
-    private function transformIntoArraySquareBrace(Tokens $tokens, int $index): void
+    private function transformIntoArraySquareBrace(Tokens $tokens, int $index): int
     {
         $endIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_INDEX_BRACKET, $index);
 
         $tokens[$index] = new Token([CT::T_ARRAY_BRACKET_OPEN, '[']);
         $tokens[$endIndex] = new Token([CT::T_ARRAY_BRACKET_CLOSE, ']']);
+
+        return $endIndex;
     }
 
-    private function transformIntoDestructuringSquareBrace(Tokens $tokens, int $index): void
+    private function transformIntoDestructuringSquareBrace(Tokens $tokens, int $index): int
     {
         $endIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_INDEX_BRACKET, $index);
 
@@ -103,6 +108,8 @@ final class SquareBraceTransformer extends AbstractTransformer
             $previousMeaningfulIndex = $index;
             $index = $tokens->getNextMeaningfulToken($index);
         }
+
+        return $endIndex;
     }
 
     /**
@@ -115,19 +122,20 @@ final class SquareBraceTransformer extends AbstractTransformer
         }
 
         $prevToken = $tokens[$tokens->getPrevMeaningfulToken($index)];
-        if ($prevToken->equalsAny([
-            ')',
-            ']',
-            '}',
-            '"',
-            [\T_CONSTANT_ENCAPSED_STRING],
-            [\T_STRING],
-            [\T_STRING_VARNAME],
-            [\T_VARIABLE],
-            [CT::T_ARRAY_BRACKET_CLOSE],
-            [CT::T_DYNAMIC_PROP_BRACE_CLOSE],
-            [CT::T_DYNAMIC_VAR_BRACE_CLOSE],
-            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
+
+        if ($prevToken->equalsAny([')', ']', '}', '"'])) {
+            return false;
+        }
+
+        if ($prevToken->isGivenKind([
+            \T_CONSTANT_ENCAPSED_STRING,
+            \T_STRING,
+            \T_STRING_VARNAME,
+            \T_VARIABLE,
+            CT::T_ARRAY_BRACKET_CLOSE,
+            CT::T_DYNAMIC_PROP_BRACE_CLOSE,
+            CT::T_DYNAMIC_VAR_BRACE_CLOSE,
+            CT::T_ARRAY_INDEX_BRACE_CLOSE,
         ])) {
             return false;
         }
@@ -148,18 +156,20 @@ final class SquareBraceTransformer extends AbstractTransformer
 
         $prevIndex = $tokens->getPrevMeaningfulToken($index);
         $prevToken = $tokens[$prevIndex];
-        if ($prevToken->equalsAny([
-            ')',
-            ']',
-            '"',
-            [\T_CONSTANT_ENCAPSED_STRING],
-            [\T_STRING],
-            [\T_STRING_VARNAME],
-            [\T_VARIABLE],
-            [CT::T_ARRAY_BRACKET_CLOSE],
-            [CT::T_DYNAMIC_PROP_BRACE_CLOSE],
-            [CT::T_DYNAMIC_VAR_BRACE_CLOSE],
-            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
+
+        if ($prevToken->equalsAny([')', ']', '"'])) {
+            return false;
+        }
+
+        if ($prevToken->isGivenKind([
+            \T_CONSTANT_ENCAPSED_STRING,
+            \T_STRING,
+            \T_STRING_VARNAME,
+            \T_VARIABLE,
+            CT::T_ARRAY_BRACKET_CLOSE,
+            CT::T_DYNAMIC_PROP_BRACE_CLOSE,
+            CT::T_DYNAMIC_VAR_BRACE_CLOSE,
+            CT::T_ARRAY_INDEX_BRACE_CLOSE,
         ])) {
             return false;
         }
