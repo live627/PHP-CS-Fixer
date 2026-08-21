@@ -213,28 +213,33 @@ final class BraceTransformer extends AbstractTransformer
             return;
         }
 
-        $prevIndex = $tokens->getPrevMeaningfulToken($index);
+        $token = $tokens[$index];
 
-        $token = $tokens[$prevIndex];
-
-        if (!$token->isGivenKind([\T_STRING, \T_VARIABLE, CT::T_ARRAY_INDEX_BRACE_CLOSE])) {
+        if (!$token->equals('{')) {
             return;
         }
 
-        $closingParenthesis = $token->equals(')');
-        if (!$closingParenthesis && !$token->equals(']')) {
+        $prevIndex = $tokens->getPrevMeaningfulToken($index);
+
+        if (!$tokens[$prevIndex]->equalsAny([
+            [\T_STRING],
+            [\T_VARIABLE],
+            [CT::T_ARRAY_INDEX_BRACE_CLOSE],
+            ']',
+            ')',
+        ])) {
             return;
         }
 
         if (
-            $token->isGivenKind(\T_STRING)
+            $tokens[$prevIndex]->isGivenKind(\T_STRING)
             && !$tokens[$tokens->getPrevMeaningfulToken($prevIndex)]->isObjectOperator()
         ) {
             return;
         }
 
         if (
-            $closingParenthesis
+            $tokens[$prevIndex]->equals(')')
             && !$tokens[$tokens->getPrevMeaningfulToken(
                 $tokens->findBlockStart(Tokens::BLOCK_TYPE_PARENTHESIS, $prevIndex),
             )]->isGivenKind(\T_ARRAY)
