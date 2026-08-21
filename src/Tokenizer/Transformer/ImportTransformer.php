@@ -53,7 +53,9 @@ final class ImportTransformer extends AbstractTransformer
     public function process(Tokens $tokens): void
     {
         foreach ($tokens as $index => $token) {
-            if (!$token->isGivenKind([\T_CONST, \T_FUNCTION])) {
+            $id = $token->getId();
+
+            if (\T_CONST !== $id && \T_FUNCTION !== $id) {
                 continue;
             }
 
@@ -68,7 +70,7 @@ final class ImportTransformer extends AbstractTransformer
             }
 
             $tokens[$index] = new Token([
-                $token->isGivenKind(\T_FUNCTION) ? CT::T_FUNCTION_IMPORT : CT::T_CONST_IMPORT,
+                \T_FUNCTION === $id ? CT::T_FUNCTION_IMPORT : CT::T_CONST_IMPORT,
                 $token->getContent(),
             ]);
         }

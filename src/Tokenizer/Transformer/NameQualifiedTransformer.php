@@ -72,7 +72,9 @@ final class NameQualifiedTransformer extends AbstractTransformer
             $tokens->clearAt($index);
         }
 
-        $tokens->insertSlices($slices);
+        if ([] !== $slices) {
+            $tokens->insertSlices($slices);
+        }
     }
 
     public function getCustomTokens(): array

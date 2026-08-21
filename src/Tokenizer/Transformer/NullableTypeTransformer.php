@@ -31,26 +31,24 @@ use PhpCsFixer\Tokenizer\Tokens;
  */
 final class NullableTypeTransformer extends AbstractTransformer
 {
-    private const TYPES = [
-        '(',
-        ',',
-        [CT::T_TYPE_COLON],
-        [CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PUBLIC],
-        [CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PROTECTED],
-        [CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PRIVATE],
-        [CT::T_ATTRIBUTE_CLOSE],
-        [\T_PRIVATE],
-        [\T_PROTECTED],
-        [\T_PUBLIC],
-        [\T_VAR],
-        [\T_STATIC],
-        [\T_CONST],
-        [\T_ABSTRACT],
-        [\T_FINAL],
-        [FCT::T_READONLY],
-        [FCT::T_PRIVATE_SET],
-        [FCT::T_PROTECTED_SET],
-        [FCT::T_PUBLIC_SET],
+    private const KINDS = [
+        CT::T_TYPE_COLON,
+        CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PUBLIC,
+        CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PROTECTED,
+        CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PRIVATE,
+        CT::T_ATTRIBUTE_CLOSE,
+        \T_PRIVATE,
+        \T_PROTECTED,
+        \T_PUBLIC,
+        \T_VAR,
+        \T_STATIC,
+        \T_CONST,
+        \T_ABSTRACT,
+        \T_FINAL,
+        FCT::T_READONLY,
+        FCT::T_PRIVATE_SET,
+        FCT::T_PROTECTED_SET,
+        FCT::T_PUBLIC_SET,
     ];
 
     public function getPriority(): int
@@ -77,13 +75,14 @@ final class NullableTypeTransformer extends AbstractTransformer
             }
 
             $prevIndex = $tokens->getPrevMeaningfulToken($index);
+            $prevToken = $tokens[$prevIndex];
 
-            if (!$tokens[$prevIndex]->equalsAny(self::TYPES)) {
+            if (!$prevToken->isGivenKind(self::KINDS) && !$prevToken->equals('(') && !$prevToken->equals(',')) {
                 continue;
             }
 
             if (
-                $tokens[$prevIndex]->isGivenKind(\T_STATIC)
+                $prevToken->isGivenKind(\T_STATIC)
                 && $tokens[$tokens->getPrevMeaningfulToken($prevIndex)]->isGivenKind(\T_INSTANCEOF)
             ) {
                 continue;

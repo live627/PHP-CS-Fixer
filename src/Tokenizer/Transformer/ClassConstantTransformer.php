@@ -43,17 +43,17 @@ final class ClassConstantTransformer extends AbstractTransformer
     public function process(Tokens $tokens): void
     {
         foreach ($tokens as $index => $token) {
-            if (!$token->equalsAny([
-                [\T_CLASS, 'class'],
-                [\T_STRING, 'class'],
-            ], false)) {
+            $id = $token->getId();
+
+            if (\T_CLASS !== $id && \T_STRING !== $id) {
                 continue;
             }
 
-            $prevIndex = $tokens->getPrevMeaningfulToken($index);
-            $prevToken = $tokens[$prevIndex];
+            if ('class' !== strtolower($token->getContent())) {
+                continue;
+            }
 
-            if ($prevToken->isGivenKind(\T_DOUBLE_COLON)) {
+            if ($tokens[$tokens->getPrevMeaningfulToken($index)]->isGivenKind(\T_DOUBLE_COLON)) {
                 $tokens[$index] = new Token([CT::T_CLASS_CONSTANT, $token->getContent()]);
             }
         }

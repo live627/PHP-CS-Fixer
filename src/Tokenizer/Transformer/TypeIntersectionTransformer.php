@@ -50,6 +50,15 @@ final class TypeIntersectionTransformer extends AbstractTypeTransformer
         return $tokens->isTokenKindFound(FCT::T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG);
     }
 
+    public function process(Tokens $tokens): void
+    {
+        foreach ($tokens as $index => $token) {
+            if ($token->isGivenKind(\T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG) && $this->isPartOfType($tokens, $index)) {
+                $tokens[$index] = new Token([CT::T_TYPE_INTERSECTION, '&']);
+            }
+        }
+    }
+
     public function getCustomTokens(): array
     {
         return [CT::T_TYPE_INTERSECTION];

@@ -42,7 +42,9 @@ final class ConstructorPromotionTransformer extends AbstractTransformer
 
     public function process(Tokens $tokens): void
     {
-        foreach ($tokens as $index => $token) {
+        $count = $tokens->count();
+
+        for ($index = 0; $index < $count; ++$index) {
             if (!$tokens[$index]->isGivenKind(\T_FUNCTION)) {
                 continue;
             }
@@ -57,15 +59,33 @@ final class ConstructorPromotionTransformer extends AbstractTransformer
             $openParenthesisIndex = $tokens->getNextMeaningfulToken($functionNameIndex); // we are @ '(' now
             $closeParenthesisIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $openParenthesisIndex);
 
-            for ($argsIndex = $openParenthesisIndex; $argsIndex < $closeParenthesisIndex; ++$argsIndex) {
-                if ($tokens[$argsIndex]->isGivenKind(\T_PUBLIC)) {
-                    $tokens[$argsIndex] = new Token([CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PUBLIC, $tokens[$argsIndex]->getContent()]);
-                } elseif ($tokens[$argsIndex]->isGivenKind(\T_PROTECTED)) {
-                    $tokens[$argsIndex] = new Token([CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PROTECTED, $tokens[$argsIndex]->getContent()]);
-                } elseif ($tokens[$argsIndex]->isGivenKind(\T_PRIVATE)) {
-                    $tokens[$argsIndex] = new Token([CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PRIVATE, $tokens[$argsIndex]->getContent()]);
+            for ($argsIndex = $openParenthesisIndex + 1; $argsIndex < $closeParenthesisIndex; ++$argsIndex) {
+                $token = $tokens[$argsIndex];
+
+                switch ($token->getId()) {
+                    case \T_PUBLIC:
+                        $newId = CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PUBLIC;
+
+                        break;
+
+                    case \T_PROTECTED:
+                        $newId = CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PROTECTED;
+
+                        break;
+
+                    case \T_PRIVATE:
+                        $newId = CT::T_CONSTRUCTOR_PROPERTY_PROMOTION_PRIVATE;
+
+                        break;
+
+                    default:
+                        continue 2;
                 }
+
+                $tokens[$argsIndex] = new Token([$newId, $token->getContent()]);
             }
+
+            $index = $argsIndex + 1;
         }
     }
 

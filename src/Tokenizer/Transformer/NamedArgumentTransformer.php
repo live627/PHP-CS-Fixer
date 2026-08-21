@@ -63,12 +63,10 @@ final class NamedArgumentTransformer extends AbstractTransformer
             // if equals ')' than likely it is a type colon, but sure not a name argument
             // if equals '?' than it is part of ternary statement
 
-            if (!$tokens[$preStringIndex]->equalsAny([',', '('])) {
-                continue;
+            if ($tokens[$preStringIndex]->equals(',') || $tokens[$preStringIndex]->equals('(')) {
+                $tokens[$stringIndex] = new Token([CT::T_NAMED_ARGUMENT_NAME, $tokens[$stringIndex]->getContent()]);
+                $tokens[$index] = new Token([CT::T_NAMED_ARGUMENT_COLON, ':']);
             }
-
-            $tokens[$stringIndex] = new Token([CT::T_NAMED_ARGUMENT_NAME, $tokens[$stringIndex]->getContent()]);
-            $tokens[$index] = new Token([CT::T_NAMED_ARGUMENT_COLON, ':']);
         }
     }
 

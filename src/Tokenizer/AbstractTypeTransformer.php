@@ -34,41 +34,7 @@ abstract class AbstractTypeTransformer extends AbstractTransformer
         [\T_WHITESPACE], [\T_COMMENT], [\T_DOC_COMMENT], // technically these can be inside of type tokens array
     ];
 
-    /**
-     * @var _PhpTokenPrototype
-     *
-     * @readonly
-     */
-    private $originalToken;
-
-    /**
-     * @readonly
-     */
-    private Token $replacementToken;
-
-    /**
-     * @param _PhpTokenPrototype $originalToken
-     * @param _PhpTokenPrototype $replacementToken
-     */
-    public function __construct($originalToken, $replacementToken)
-    {
-        $this->originalToken = $originalToken;
-        $this->replacementToken = new Token($replacementToken);
-    }
-
-    public function process(Tokens $tokens): void
-    {
-        foreach ($tokens as $index => $token) {
-            if (
-                $token->equals($this->originalToken)
-                && $this->isPartOfType($tokens, $index)
-            ) {
-                $tokens[$index] = clone $this->replacementToken;
-            }
-        }
-    }
-
-    private function isPartOfType(Tokens $tokens, int $index): bool
+    protected function isPartOfType(Tokens $tokens, int $index): bool
     {
         // return types and non-capturing catches
         $typeColonIndex = $tokens->getTokenNotOfKindSibling($index, -1, self::TYPE_TOKENS);
