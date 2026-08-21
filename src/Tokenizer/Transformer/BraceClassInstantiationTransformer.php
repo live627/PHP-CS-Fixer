@@ -53,7 +53,7 @@ final class BraceClassInstantiationTransformer extends AbstractTransformer
         $count = $tokens->count();
 
         while ($index < $count) {
-            if (!$tokens[$index]->equals('(') || !$tokens[$tokens->getNextMeaningfulToken($index)]->isGivenKind(\T_NEW) {
+            if (!$tokens[$index]->equals('(') || !$tokens[$tokens->getNextMeaningfulToken($index)]->isGivenKind(\T_NEW)) {
                 ++$index;
                 continue;
             }
