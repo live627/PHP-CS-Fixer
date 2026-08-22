@@ -116,6 +116,10 @@ final class SquareBraceTransformer extends AbstractTransformer
      */
     private function isShortArray(Tokens $tokens, int $index): bool
     {
+        if (!$tokens[$index]->equals('[')) {
+            return false;
+        }
+
         $prevToken = $tokens[$tokens->getPrevMeaningfulToken($index)];
 
         if ($prevToken->equalsAny([')', ']', '}', '"'])) {
@@ -145,6 +149,10 @@ final class SquareBraceTransformer extends AbstractTransformer
 
     private function isArrayDestructing(Tokens $tokens, int $index): bool
     {
+        if (!$tokens[$index]->equals('[')) {
+            return false;
+        }
+
         $prevIndex = $tokens->getPrevMeaningfulToken($index);
         $prevToken = $tokens[$prevIndex];
 
