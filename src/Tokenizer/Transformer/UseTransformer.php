@@ -48,58 +48,45 @@ final class UseTransformer extends AbstractTransformer
     {
         return $tokens->isTokenKindFound(\T_USE);
     }
+
     public function process(Tokens $tokens): void
     {
         $count = $tokens->count();
-        $inClass = false;
-        $level = 0;
 
         for ($index = 0; $index < $count; ++$index) {
-            $token = $tokens[$index];
-            $id = $token->getId();
+            $id = $tokens[$index]->getId();
 
-            if (!$inClass) {
-                if (\T_USE === $id) {
-                    if ($this->isUseForLambda($tokens, $index)) {
-                        $tokens[$index] = new Token([
-                            CT::T_USE_LAMBDA,
-                            $token->getContent(),
-                        ]);
-                    }
-
-                    continue;
-                }
-
-                if (
-                    (\T_CLASS === $id
-                        && !$tokens[$tokens->getPrevMeaningfulToken($index)]->isGivenKind(\T_DOUBLE_COLON))
-                    || \T_TRAIT === $id
-                    || FCT::T_ENUM === $id
-                ) {
-                    $inClass = true;
-                    $level = 0;
-                }
+            if (\T_USE === $id && $this->isUseForLambda($tokens, $index)) {
+                $tokens[$index] = new Token([CT::T_USE_LAMBDA, $tokens[$index]->getContent()]);
 
                 continue;
             }
 
-            if ($token->equals('{')) {
-                ++$level;
-            } elseif ($token->equals('}')) {
-                if (0 === --$level) {
-                    $inClass = false;
+            // Only search inside class/trait body for `T_USE` for traits.
+            // Cannot import traits inside interfaces or anywhere else
+
+            if (\T_CLASS === $id) {
+                if ($tokens[$tokens->getPrevMeaningfulToken($index)]->isGivenKind(\T_DOUBLE_COLON)) {
+                    continue;
                 }
-            } elseif (\T_USE === $id) {
+            } elseif (\T_TRAIT !== $id && FCT::T_ENUM !== $id) {
+                continue;
+            }
+
+            $index = $tokens->getNextTokenOfKind($index, ['{']);
+            $innerLimit = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_BRACE, $index);
+
+            while ($index < $innerLimit) {
+                $token = $tokens[++$index];
+
+                if (\T_USE !== $token->getId()) {
+                    continue;
+                }
+
                 if ($this->isUseForLambda($tokens, $index)) {
-                    $tokens[$index] = new Token([
-                        CT::T_USE_LAMBDA,
-                        $token->getContent(),
-                    ]);
-                } elseif (1 === $level) {
-                    $tokens[$index] = new Token([
-                        CT::T_USE_TRAIT,
-                        $token->getContent(),
-                    ]);
+                    $tokens[$index] = new Token([CT::T_USE_LAMBDA, $token->getContent()]);
+                } else {
+                    $tokens[$index] = new Token([CT::T_USE_TRAIT, $token->getContent()]);
                 }
             }
         }
