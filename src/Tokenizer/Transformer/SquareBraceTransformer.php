@@ -99,7 +99,7 @@ final class SquareBraceTransformer extends AbstractTransformer
         $index = $tokens->getNextMeaningfulToken($index);
 
         while ($index < $endIndex) {
-            if ($tokens[$index]->equals('[') && $tokens[$previousMeaningfulIndex]->equalsAny([[CT::T_DESTRUCTURING_BRACKET_OPEN], ','])) {
+            if ($tokens[$index]->equals('[') && ($tokens[$previousMeaningfulIndex]->isGivenKind(CT::T_DESTRUCTURING_BRACKET_OPEN) || $tokens[$previousMeaningfulIndex]->equals(','))) {
                 $tokens[$tokens->findBlockEnd(Tokens::BLOCK_TYPE_INDEX_BRACKET, $index)] = new Token([CT::T_DESTRUCTURING_BRACKET_CLOSE, ']']);
                 $tokens[$index] = new Token([CT::T_DESTRUCTURING_BRACKET_OPEN, '[']);
             }
