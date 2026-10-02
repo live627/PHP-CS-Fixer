@@ -123,6 +123,8 @@ final class Runner
 
     private PerformanceProfiler $profiler;
 
+    private array $timers = [];
+
     /**
      * @param null|\Traversable<array-key, \SplFileInfo> $fileIterator
      * @param list<FixerInterface>                       $fixers
@@ -558,29 +560,27 @@ final class Runner
             }
         }
 
-		file_put_contents('out.txt', "Token Parsing: " . $this->profiler->getStageTimeMs('token_parsing') . "ms\nLine Length Fixer Avg: " . $this->profiler->getFixerAverageTimeMs('line_length') . "ms\n" . $this->profiler->getReport());
+        file_put_contents('out.txt', 'Token Parsing: '.$this->profiler->getStageTimeMs('token_parsing')."ms\nLine Length Fixer Avg: ".$this->profiler->getFixerAverageTimeMs('line_length')."ms\n".$this->profiler->getReport());
 
-		ksort($this->timers);
+        ksort($this->timers);
 
-		file_put_contents(
-			'timings.json',
-			json_encode(
-				array_map(
-					static fn (array $timers): array => array_map(
-						static fn (float $time): float => round($time / 1e6, 6),
-						$timers,
-					),
-					$this->timers,
-				),
-				JSON_PRETTY_PRINT,
-			),
-			LOCK_EX,
-		);
+        file_put_contents(
+            'timings.json',
+            json_encode(
+                array_map(
+                    static fn (array $timers): array => array_map(
+                        static fn (float $time): float => round($time / 1e6, 6),
+                        $timers,
+                    ),
+                    $this->timers,
+                ),
+                \JSON_PRETTY_PRINT,
+            ),
+            \LOCK_EX,
+        );
 
         return $changed;
     }
-
-    private array $timers = [];
 
     /**
      * @return null|array{appliedFixers: list<string>, diff: string}
@@ -641,6 +641,7 @@ final class Runner
             $this->profiler->stopStage('annotation_analysis');
         } catch (\RuntimeException $e) {
             $this->profiler->stopStage('annotation_analysis');
+
             throw new \RuntimeException(
                 \sprintf(
                     'Error while analysing file "%s": %s',
@@ -696,20 +697,20 @@ final class Runner
                     continue;
                 }
 
-				$this->profiler->startFixerStage($fixer->getName());
+                $this->profiler->startFixerStage($fixer->getName());
 
-				$fixer->fix($file, $tokens);
+                $fixer->fix($file, $tokens);
 
-				$this->profiler->stopFixerStage($fixer->getName());
+                $this->profiler->stopFixerStage($fixer->getName());
 
-				if ($fixer instanceof AbstractFixer) {
-					foreach ($fixer->getTimers() as $name => $time) {
-						$this->timers[$fixer->getName()][$name]
-							= ($this->timers[$fixer->getName()][$name] ?? 0.0) + $time;
-					}
+                if ($fixer instanceof AbstractFixer) {
+                    foreach ($fixer->getTimers() as $name => $time) {
+                        $this->timers[$fixer->getName()][$name]
+                            = ($this->timers[$fixer->getName()][$name] ?? 0.0) + $time;
+                    }
 
-					$fixer->resetTimers();
-				}
+                    $fixer->resetTimers();
+                }
 
                 if ($tokens->isChanged()) {
                     $tokens->clearEmptyTokens();
