@@ -78,7 +78,7 @@ final class Transformers
                         substr($class, strrpos($class, '\\') + 1),
                         $total / 1_000_000,
                         $calls[$class],
-                        $total / $calls[$class] / 1_000
+                        $total / $calls[$class] / 1_000,
                     );
                 }
             });
