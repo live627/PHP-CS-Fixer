@@ -348,7 +348,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                         continue;
                     }
 
-                    if ($endToken->equalsAny(['{', ';', [\T_DOUBLE_ARROW], [\T_IMPLEMENTS]])) {
+                    if ($endToken->equals('{') || $endToken->equals(';') || $endTokenId === \T_DOUBLE_ARROW || $endTokenId === \T_IMPLEMENTS) {
                         break;
                     }
 
@@ -416,7 +416,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                         continue;
                     }
 
-                    if ($tokens[$endIndex]->equalsAny(['{', ';'])) {
+                    if ($tokens[$endIndex]->equals('{') || $tokens[$endIndex]->equals(';')) {
                         break;
                     }
                 }
@@ -586,7 +586,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 --$currentScope;
             }
 
-            if ($token->isComment() || $token->equalsAny([';', ',', '}', [\T_OPEN_TAG], [\T_CLOSE_TAG], [CT::T_ATTRIBUTE_CLOSE]])) {
+            if ($token->isComment() || $token->equals(';') || $token->equals(',') || $token->equals('}') || $tokenId === \T_OPEN_TAG || $tokenId === \T_CLOSE_TAG || $tokenId === CT::T_ATTRIBUTE_CLOSE) {
                 continue;
             }
 
@@ -635,7 +635,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 continue;
             }
 
-            if ($searchEndToken->equalsAny(['(', '{', [CT::T_ARRAY_BRACKET_OPEN]])) {
+            if ($searchEndToken->equals('(') || $searchEndToken->equals('{') || $searchEndTokenId === CT::T_ARRAY_BRACKET_OPEN) {
                 if ($searchEndToken->equals('(')) {
                     $blockType = Tokens::BLOCK_TYPE_PARENTHESIS;
                 } elseif ($searchEndToken->equals('{')) {
@@ -648,7 +648,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 $searchEndToken = $tokens[$searchEndIndex];
             }
 
-            if (!$searchEndToken->equalsAny([';', ',', '}', [\T_CLOSE_TAG]])) {
+            if (!($searchEndToken->equals(';') || $searchEndToken->equals(',') || $searchEndToken->equals('}') || $searchEndToken->getId() === \T_CLOSE_TAG)) {
                 continue;
             }
 
@@ -726,7 +726,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 return [$index, true];
             }
 
-            if ($tokens[$index]->equalsAny(['}', [\T_ENDSWITCH]])) {
+            if ($tokens[$index]->equals('}') || $tokens[$index]->getId() === \T_ENDSWITCH) {
                 return [$tokens->getPrevNonWhitespace($index), false];
             }
         }
