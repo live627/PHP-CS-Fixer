@@ -221,6 +221,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
 
         foreach ($tokens as $index => $token) {
             $currentScope = \count($scopes) - 1;
+            $tokenId = $token->getId();
 
             if (isset($noBracesBlockStarts[$index])) {
                 $scopes[] = [
@@ -242,9 +243,9 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
             ) {
                 $endIndexInclusive = true;
 
-                if ($token->isGivenKind([\T_EXTENDS, \T_IMPLEMENTS])) {
+                if ($tokenId === \T_EXTENDS || $tokenId === \T_IMPLEMENTS) {
                     $endIndex = $tokens->getNextTokenOfKind($index, ['{']);
-                } elseif ($token->getId() === CT::T_USE_TRAIT) {
+                } elseif ($tokenId === CT::T_USE_TRAIT) {
                     $endIndex = $tokens->getNextTokenOfKind($index, [';']);
                 } elseif ($token->equals(':')) {
                     if (isset($caseBlockStarts[$index])) {
@@ -252,15 +253,15 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                     } elseif ($this->alternativeSyntaxAnalyzer->belongsToAlternativeSyntax($tokens, $index)) {
                         $endIndex = $this->alternativeSyntaxAnalyzer->findAlternativeSyntaxBlockEnd($tokens, $alternativeBlockStarts[$index]);
                     }
-                } elseif ($token->getId() === CT::T_DESTRUCTURING_BRACKET_OPEN) {
+                } elseif ($tokenId === CT::T_DESTRUCTURING_BRACKET_OPEN) {
                     $endIndex = $tokens->getNextTokenOfKind($index, [[CT::T_DESTRUCTURING_BRACKET_CLOSE]]);
-                } elseif ($token->getId() === CT::T_GROUP_IMPORT_BRACE_OPEN) {
+                } elseif ($tokenId === CT::T_GROUP_IMPORT_BRACE_OPEN) {
                     $endIndex = $tokens->getNextTokenOfKind($index, [[CT::T_GROUP_IMPORT_BRACE_CLOSE]]);
                 } elseif ($token->equals('{')) {
                     $endIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_BRACE, $index);
                 } elseif ($token->equals('(')) {
                     $endIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $index);
-                } elseif ($token->getId() === CT::T_PROPERTY_HOOK_BRACE_OPEN) {
+                } elseif ($tokenId === CT::T_PROPERTY_HOOK_BRACE_OPEN) {
                     $endIndex = $tokens->getNextTokenOfKind($index, [[CT::T_PROPERTY_HOOK_BRACE_CLOSE]]);
                 } else {
                     $endIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_ATTRIBUTE, $index);
@@ -278,8 +279,11 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                     if (null !== $prevIndex) {
                         $prevIndex = $tokens->getPrevMeaningfulToken($prevIndex);
                     }
-                    if (null !== $prevIndex && $tokens[$prevIndex]->isGivenKind([\T_FUNCTION, \T_FN])) {
-                        $skip = true;
+                    if (null !== $prevIndex) {
+                        $prevTokenId = $tokens[$prevIndex]->getId();
+                        if ($prevTokenId === \T_FUNCTION || $prevTokenId === \T_FN) {
+                            $skip = true;
+                        }
                     }
                 }
 
@@ -303,7 +307,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
             }
 
             if (
-                $token->getId() === CT::T_ARRAY_BRACKET_OPEN
+                $tokenId === CT::T_ARRAY_BRACKET_OPEN
                 || ($token->equals('(') && $tokens[$tokens->getPrevMeaningfulToken($index)]->isGivenKind(\T_ARRAY))
             ) {
                 $blockType = $token->equals('(') ? Tokens::BLOCK_TYPE_PARENTHESIS : Tokens::BLOCK_TYPE_ARRAY_BRACKET;
@@ -329,6 +333,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
 
                 for ($endIndex = $index + 1, $max = \count($tokens); $endIndex < $max; ++$endIndex) {
                     $endToken = $tokens[$endIndex];
+                    $endTokenId = $endToken->getId();
 
                     if ($endToken->equals('(')) {
                         $closingParenthesisIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_PARENTHESIS, $endIndex);
@@ -337,7 +342,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                         continue;
                     }
 
-                    if ($endToken->getId() === CT::T_ARRAY_BRACKET_OPEN) {
+                    if ($endTokenId === CT::T_ARRAY_BRACKET_OPEN) {
                         $endIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_ARRAY_BRACKET, $endIndex);
 
                         continue;
@@ -401,7 +406,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 continue;
             }
 
-            if ($token->getId() === \T_FUNCTION) {
+            if ($tokenId === \T_FUNCTION) {
                 $endIndex = $index + 1;
 
                 for ($max = \count($tokens); $endIndex < $max; ++$endIndex) {
@@ -613,9 +618,10 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
         $doWhileLevel = 0;
         for ($searchEndIndex = $index; $searchEndIndex <= $parentScopeEndIndex; ++$searchEndIndex) {
             $searchEndToken = $tokens[$searchEndIndex];
+            $searchEndTokenId = $searchEndToken->getId();
 
             if (
-                $searchEndToken->getId() === \T_IF
+                $searchEndTokenId === \T_IF
                 && !$tokens[$tokens->getPrevMeaningfulToken($searchEndIndex)]->getId() === \T_ELSE
             ) {
                 ++$ifLevel;
@@ -623,7 +629,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 continue;
             }
 
-            if ($searchEndToken->getId() === \T_DO) {
+            if ($searchEndTokenId === \T_DO) {
                 ++$doWhileLevel;
 
                 continue;
@@ -653,8 +659,9 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 && null !== $controlStructureContinuationIndex
                 && $tokens[$controlStructureContinuationIndex]->isGivenKind([\T_ELSE, \T_ELSEIF])
             ) {
+                $contTokenId = $tokens[$controlStructureContinuationIndex]->getId();
                 if (
-                    $tokens[$controlStructureContinuationIndex]->getId() === \T_ELSE
+                    $contTokenId === \T_ELSE
                     && !$tokens[$tokens->getNextMeaningfulToken($controlStructureContinuationIndex)]->getId() === \T_IF
                 ) {
                     --$ifLevel;
@@ -690,7 +697,9 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
     private function findCaseBlockEnd(Tokens $tokens, int $index): array
     {
         for ($max = \count($tokens); $index < $max; ++$index) {
-            if ($tokens[$index]->getId() === \T_SWITCH) {
+            $tokenId = $tokens[$index]->getId();
+
+            if ($tokenId === \T_SWITCH) {
                 $braceIndex = $tokens->getNextMeaningfulToken(
                     $tokens->findBlockEnd(
                         Tokens::BLOCK_TYPE_PARENTHESIS,
@@ -713,7 +722,7 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
                 continue;
             }
 
-            if ($tokens[$index]->isGivenKind([\T_CASE, \T_DEFAULT])) {
+            if ($tokenId === \T_CASE || $tokenId === \T_DEFAULT) {
                 return [$index, true];
             }
 
@@ -757,7 +766,8 @@ final class StatementIndentationFixer extends AbstractFixer implements Configura
         }
 
         while ($tokens[$index]->isGivenKind(self::PROPERTY_KEYWORDS)) {
-            if ($tokens[$index]->getId() === \T_VAR || $tokens[$index]->getId() === \T_PUBLIC || $tokens[$index]->getId() === \T_PROTECTED || $tokens[$index]->getId() === \T_PRIVATE) {
+            $curTokenId = $tokens[$index]->getId();
+            if ($curTokenId === \T_VAR || $curTokenId === \T_PUBLIC || $curTokenId === \T_PROTECTED || $curTokenId === \T_PRIVATE) {
                 return true;
             }
 
