@@ -1,0 +1,33 @@
+--TEST--
+declare_strict_types adds a declare, then the header order is fixed.
+--RULESET--
+{
+    "declare_strict_types": true,
+    "Live627/file_header_order": true
+}
+--CONFIG--
+{
+    "customFixers": ["Live627\\PhpCsFixer\\CustomFixers\\FileHeaderOrderFixer"]
+}
+--SETTINGS--
+{
+    "isRiskyAllowed": true
+}
+--EXPECT--
+<?php 
+/**
+ * Bootstrap for the application.
+ */
+
+declare(strict_types=1);
+
+namespace App;
+
+--INPUT--
+<?php
+
+/**
+ * Bootstrap for the application.
+ */
+
+namespace App;

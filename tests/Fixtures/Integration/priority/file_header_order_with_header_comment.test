@@ -1,0 +1,32 @@
+--TEST--
+header_comment at the top of the file stays above declare.
+--RULESET--
+{
+    "header_comment": {
+        "header": "Header text.",
+        "comment_type": "PHPDoc",
+        "location": "after_declare_strict"
+    },
+    "Live627/file_header_order": true
+}
+--CONFIG--
+{
+    "customFixers": ["Live627\\PhpCsFixer\\CustomFixers\\FileHeaderOrderFixer"]
+}
+--EXPECT--
+<?php
+
+/**
+ * Header text.
+ */
+
+declare(strict_types=1);
+
+namespace App;
+
+--INPUT--
+<?php
+
+declare(strict_types=1);
+
+namespace App;
