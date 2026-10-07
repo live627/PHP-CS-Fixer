@@ -440,6 +440,7 @@ final class FixerFactoryTest extends TestCase
                 'blank_line_after_opening_tag',
                 'declare_equal_normalize',
                 'header_comment',
+                'file_header_order',
             ],
             'dir_constant' => [
                 'combine_nested_dirname',
@@ -512,6 +513,7 @@ final class FixerFactoryTest extends TestCase
             ],
             'header_comment' => [
                 'blank_lines_before_namespace',
+                'file_header_order',
                 'single_blank_line_before_namespace',
                 'single_line_comment_style',
             ],
