@@ -123,6 +123,11 @@ final class NoUnusedImportsFixer extends AbstractFixer
                 continue;
             }
 
+            // Skip comments - they should not count as "using" an import
+            if ($token->isComment()) {
+                continue;
+            }
+
             if ($token->isGivenKind(\T_STRING)) {
                 if (0 !== strcasecmp($import->getShortName(), $token->getContent())) {
                     continue;
@@ -172,15 +177,6 @@ final class NoUnusedImportsFixer extends AbstractFixer
                 }
 
                 continue;
-            }
-
-            if ($token->isComment()
-                && Preg::match(
-                    '/(?<![[:alnum:]\$_])(?<!\\\)'.$import->getShortName().'(?![[:alnum:]_])/i',
-                    $token->getContent(),
-                )
-            ) {
-                return true;
             }
         }
 
