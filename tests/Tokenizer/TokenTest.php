@@ -570,6 +570,78 @@ final class TokenTest extends TestCase
     }
 
     /**
+     * @dataProvider provideEqualsAnyCharCases
+     */
+    #[DataProvider('provideEqualsAnyCharCases')]
+    public function testEqualsAnyChar(Token $token, bool $expected, string $characters): void
+    {
+        self::assertSame($expected, $token->equalsAnyChar($characters));
+        self::assertSame($expected, $token->equalsAny(str_split($characters)));
+    }
+
+    /**
+     * @return iterable<int, array{Token, bool, string}>
+     */
+    public static function provideEqualsAnyCharCases(): iterable
+    {
+        $brace = self::getBraceToken();
+        $foreach = self::getForeachToken();
+
+        yield [$brace, true, '('];
+
+        yield [$brace, false, ')'];
+
+        yield [$brace, true, ';,)('];
+
+        yield [$brace, false, ';,)'];
+
+        yield [new Token(';'), true, ';,)'];
+
+        yield [new Token('x'), false, ';,)'];
+
+        yield [$foreach, false, '('];
+
+        yield [$foreach, false, 'foreach'];
+
+        yield [new Token([\T_INLINE_HTML, ';']), false, ';'];
+
+        yield [new Token([\T_STRING, 'x']), false, 'x'];
+
+        yield [new Token('ab'), false, 'ab'];
+
+        yield [new Token(';,'), false, ';,'];
+
+        yield [new Token(''), false, ';,'];
+    }
+
+    /**
+     * @dataProvider provideEqualsAnyCharRejectsInvalidCharactersCases
+     */
+    #[DataProvider('provideEqualsAnyCharRejectsInvalidCharactersCases')]
+    public function testEqualsAnyCharRejectsInvalidCharacters(string $characters): void
+    {
+        if (1 > (int) \ini_get('zend.assertions')) {
+            self::markTestSkipped('Assertions are disabled.');
+        }
+
+        $this->expectException(\AssertionError::class);
+
+        self::getBraceToken()->equalsAnyChar($characters);
+    }
+
+    /**
+     * @return iterable<int, array{string}>
+     */
+    public static function provideEqualsAnyCharRejectsInvalidCharactersCases(): iterable
+    {
+        yield [''];
+
+        yield ['&'];
+
+        yield [';&,'];
+    }
+
+    /**
      * @param bool|list<bool> $caseSensitive
      *
      * @dataProvider provideIsKeyCaseSensitiveCases
