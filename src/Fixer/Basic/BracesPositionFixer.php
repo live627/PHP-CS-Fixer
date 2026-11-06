@@ -324,35 +324,20 @@ final class BracesPositionFixer extends AbstractFixer implements ConfigurableFix
 
             $closeBraceIndex = $tokens->findBlockEnd(Tokens::BLOCK_TYPE_BRACE, $openBraceIndex);
 
-            $insideSingleLineBody = $index < $allowSingleLineUntil;
-            $checkForNewlines = !$insideSingleLineBody;
             $addNewlinesInsideBraces = true;
-
-            if ($allowSingleLine || $allowSingleLineIfEmpty || $insideSingleLineBody) {
+            if ($allowSingleLine || $allowSingleLineIfEmpty || $index < $allowSingleLineUntil) {
                 $addNewlinesInsideBraces = false;
 
-                // An enclosing body was already checked for newlines, so nested bodies need no such scan.
-                if ($allowSingleLineIfEmpty || ($allowSingleLine && $checkForNewlines)) {
-                    for (
-                        $indexInsideBraces = $openBraceIndex + 1;
-                        $indexInsideBraces < $closeBraceIndex;
-                        ++$indexInsideBraces
+                for ($indexInsideBraces = $openBraceIndex + 1; $indexInsideBraces < $closeBraceIndex; ++$indexInsideBraces) {
+                    $tokenInsideBraces = $tokens[$indexInsideBraces];
+
+                    if (
+                        ($allowSingleLineIfEmpty && !$tokenInsideBraces->isWhitespace() && !$tokenInsideBraces->isComment())
+                        || ($tokenInsideBraces->isWhitespace() && false !== strpbrk($tokenInsideBraces->getContent(), "\r\n"))
                     ) {
-                        $tokenInsideBraces = $tokens[$indexInsideBraces];
-                        $isWhitespace = $tokenInsideBraces->isWhitespace();
+                        $addNewlinesInsideBraces = true;
 
-                        if (
-                            ($allowSingleLineIfEmpty && !$isWhitespace && !$tokenInsideBraces->isComment())
-                            || (
-                                $checkForNewlines
-                                && $isWhitespace
-                                && false !== strpbrk($tokenInsideBraces->getContent(), "\r\n")
-                            )
-                        ) {
-                            $addNewlinesInsideBraces = true;
-
-                            break;
-                        }
+                        break;
                     }
                 }
 
