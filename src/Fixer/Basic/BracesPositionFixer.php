@@ -270,8 +270,16 @@ final class BracesPositionFixer extends AbstractFixer implements ConfigurableFix
 
                 $positionOption = 'control_structures_opening_brace';
             } elseif ($token->isGivenKind(\T_VARIABLE)) {
-                // handle default value - explicitly skip array as default value
                 $nextMeaningfulIndex = $tokens->getNextMeaningfulToken($index);
+
+                if (
+                    !$tokens[$nextMeaningfulIndex]->equals('=')
+                    && !$tokens[$nextMeaningfulIndex]->isGivenKind(CT::T_PROPERTY_HOOK_BRACE_OPEN)
+                ) {
+                    continue;
+                }
+
+                // handle default value - explicitly skip array as default value
                 if ($tokens[$nextMeaningfulIndex]->equals('=')) {
                     $nextMeaningfulIndex = $tokens->getNextMeaningfulToken($nextMeaningfulIndex);
 
@@ -298,14 +306,14 @@ final class BracesPositionFixer extends AbstractFixer implements ConfigurableFix
 
                 $positionOption = 'control_structures_opening_brace';
             } elseif ($token->isGivenKind(\T_STRING)) {
-                $parenthesisEndIndex = $this->findParenthesisEnd($tokens, $index);
-                $openBraceIndex = $tokens->getNextMeaningfulToken($parenthesisEndIndex);
-                if (!$tokens[$openBraceIndex]->equals('{')) {
+                $prevIndex = $tokens->getPrevMeaningfulToken($index);
+                if (!$tokens[$prevIndex]->equalsAny(['}', ';', [CT::T_ATTRIBUTE_CLOSE], [CT::T_PROPERTY_HOOK_BRACE_OPEN]])) {
                     continue;
                 }
 
-                $prevIndex = $tokens->getPrevMeaningfulToken($index);
-                if (!$tokens[$prevIndex]->equalsAny(['}', ';', [CT::T_ATTRIBUTE_CLOSE], [CT::T_PROPERTY_HOOK_BRACE_OPEN]])) {
+                $parenthesisEndIndex = $this->findParenthesisEnd($tokens, $index);
+                $openBraceIndex = $tokens->getNextMeaningfulToken($parenthesisEndIndex);
+                if (!$tokens[$openBraceIndex]->equals('{')) {
                     continue;
                 }
                 $allowSingleLine = true === $this->configuration['allow_single_line_anonymous_functions'];
