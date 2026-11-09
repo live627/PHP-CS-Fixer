@@ -248,7 +248,7 @@ final class OrderedImportsFixer extends AbstractFixer implements ConfigurableFix
             $count = \count($usesPerNamespaceIndices);
 
             if (1 === $count) {
-                $this->setNewOrder($tokens, $this->getNewOrder($usesPerNamespaceIndices, $tokens));
+                $this->setNewOrderIfNeeded($tokens, $this->getNewOrder($usesPerNamespaceIndices, $tokens));
 
                 continue;
             }
@@ -277,7 +277,7 @@ final class OrderedImportsFixer extends AbstractFixer implements ConfigurableFix
 
             for ($index = $groupUsesOffset; $index >= 0; --$index) {
                 \assert(isset($groupUses[$index]));
-                $this->setNewOrder($tokens, $this->getNewOrder($groupUses[$index], $tokens));
+                $this->setNewOrderIfNeeded($tokens, $this->getNewOrder($groupUses[$index], $tokens));
             }
         }
     }
@@ -612,6 +612,40 @@ final class OrderedImportsFixer extends AbstractFixer implements ConfigurableFix
         }
 
         return $indices;
+    }
+
+    /**
+     * @param array<int, _UseImportInfo> $usesOrder
+     */
+    private function setNewOrderIfNeeded(Tokens $tokens, array $usesOrder): void
+    {
+        foreach ($usesOrder as $index => $use) {
+            if ($index !== $use['startIndex'] || null === $use['replacementTokens']) {
+                $this->setNewOrder($tokens, $usesOrder);
+
+                return;
+            }
+
+            if (!$use['group']) {
+                continue;
+            }
+
+            // Preserve the conversion of comma-separated group imports into separate use statements.
+            if ($tokens[$tokens->getPrevMeaningfulToken($index)]->equals(',')) {
+                $this->setNewOrder($tokens, $usesOrder);
+
+                return;
+            }
+
+            $closeGroupIndex = $tokens->getNextTokenOfKind($index, [[CT::T_GROUP_IMPORT_BRACE_CLOSE]]);
+            $nextMeaningfulIndex = $tokens->getNextMeaningfulToken($closeGroupIndex);
+
+            if (null !== $nextMeaningfulIndex && $tokens[$nextMeaningfulIndex]->equals(',')) {
+                $this->setNewOrder($tokens, $usesOrder);
+
+                return;
+            }
+        }
     }
 
     /**
