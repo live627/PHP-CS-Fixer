@@ -420,6 +420,8 @@ final class OrderedImportsFixer extends AbstractFixer implements ConfigurableFix
                 $index = $startIndex;
             }
 
+            // The import type prefix belongs to the declaration position, not to an individual import.
+            $namespaceStartIndex = $index;
             $namespaceTokens = [];
 
             while ($index <= $endIndex) {
@@ -515,7 +517,7 @@ final class OrderedImportsFixer extends AbstractFixer implements ConfigurableFix
                     $replacementTokens = null;
                     if (!$groupImportChanged) {
                         $replacementTokens = [];
-                        for ($replacementIndex = $startIndex; $replacementIndex < $index; ++$replacementIndex) {
+                        for ($replacementIndex = $namespaceStartIndex; $replacementIndex < $index; ++$replacementIndex) {
                             $replacementTokens[] = $tokens[$replacementIndex];
                         }
                     }
@@ -542,6 +544,7 @@ final class OrderedImportsFixer extends AbstractFixer implements ConfigurableFix
                     \assert(\is_int($nextPartIndex));
                     $startIndex = $nextPartIndex;
                     $index = $nextPartIndex;
+                    $namespaceStartIndex = $nextPartIndex;
 
                     continue;
                 }
@@ -648,6 +651,21 @@ final class OrderedImportsFixer extends AbstractFixer implements ConfigurableFix
             }
 
             \assert(isset($mapStartToEnd[$index]));
+
+            if (null !== $use['replacementTokens']) {
+                // The import type belongs to the sorted import, not to the original token position.
+                if (
+                    self::IMPORT_TYPE_CLASS !== $use['importType']
+                    && !$tokens[$tokens->getPrevMeaningfulToken($index)]->equals(',')
+                ) {
+                    array_unshift($declarationTokens, new Token([\T_WHITESPACE, ' ']));
+                    array_unshift($declarationTokens, new Token([
+                        self::IMPORT_TYPE_CONST === $use['importType'] ? CT::T_CONST_IMPORT : CT::T_FUNCTION_IMPORT,
+                        $use['importType'],
+                    ]));
+                }
+            }
+
             $tokens->overrideRange($index, $mapStartToEnd[$index], $declarationTokens);
 
             if ($use['group']) {
