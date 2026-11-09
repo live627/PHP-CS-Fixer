@@ -81,72 +81,24 @@ final class NoUnusedImportsFixer extends AbstractFixer
                 }
             }
 
-            if ([] === $currentNamespaceUseDeclarations) {
-                continue;
-            }
-
-            $usedImports = $this->findUsedImports(
-                $tokens,
-                $namespace,
-                $currentNamespaceUseDeclarations,
-                $currentNamespaceUseDeclarationIndices,
-            );
-
-            $removedImports = [];
-
             foreach ($currentNamespaceUseDeclarations as $useDeclaration) {
-                if (!isset($usedImports[$useDeclaration->getStartIndex()])) {
+                if (!$this->isImportUsed($tokens, $namespace, $useDeclaration, $currentNamespaceUseDeclarationIndices)) {
                     $this->removeUseDeclaration($tokens, $useDeclaration);
-                    $removedImports[$useDeclaration->getStartIndex()] = true;
                 }
             }
 
-            $this->removeUsesInSameNamespace(
-                $tokens,
-                $currentNamespaceUseDeclarations,
-                $namespace,
-                $removedImports,
-            );
+            $this->removeUsesInSameNamespace($tokens, $currentNamespaceUseDeclarations, $namespace);
         }
     }
 
     /**
-     * Finds all used imports in one pass over the namespace instead of scanning it once per import.
-     *
-     * @param list<NamespaceUseAnalysis> $useDeclarations
      * @param array<int, int> $ignoredIndices indices of the use statements themselves that should not be checked as being "used"
-     *
-     * @return array<int, true> import start indices that are used
      */
-    private function findUsedImports(
-        Tokens $tokens,
-        NamespaceAnalysis $namespace,
-        array $useDeclarations,
-        array $ignoredIndices
-    ): array {
-        if ([] === $useDeclarations) {
-            return [];
-        }
-
-        $importsByShortName = [];
-        $commentNames = [];
-
-        foreach ($useDeclarations as $useDeclaration) {
-            $shortName = strtolower($useDeclaration->getShortName());
-
-            $importsByShortName[$shortName][] = [
-                'index' => $useDeclaration->getStartIndex(),
-                'type' => $useDeclaration->getType(),
-            ];
-            $commentNames[$shortName] = preg_quote($useDeclaration->getShortName(), '/');
-        }
-
-        // A single expression handles all imported short names in comments.
-        $commentPattern = '/(?<![[:alnum:]\$_])(?<!\\\\)(?<name>'.implode('|', $commentNames).')(?![[:alnum:]_])/i';
-
+    private function isImportUsed(Tokens $tokens, NamespaceAnalysis $namespace, NamespaceUseAnalysis $import, array $ignoredIndices): bool
+    {
         $analyzer = new TokensAnalyzer($tokens);
         $gotoLabelAnalyzer = new GotoLabelAnalyzer();
-        $usedImports = [];
+
         $namespaceEndIndex = $namespace->getScopeEndIndex();
         $inAttribute = false;
 
@@ -172,9 +124,7 @@ final class NoUnusedImportsFixer extends AbstractFixer
             }
 
             if ($token->isGivenKind(\T_STRING)) {
-                $shortName = strtolower($token->getContent());
-
-                if (!isset($importsByShortName[$shortName])) {
+                if (0 !== strcasecmp($import->getShortName(), $token->getContent())) {
                     continue;
                 }
 
@@ -198,11 +148,7 @@ final class NoUnusedImportsFixer extends AbstractFixer
                 }
 
                 if ($inAttribute) {
-                    foreach ($importsByShortName[$shortName] as $import) {
-                        $usedImports[$import['index']] = true;
-                    }
-
-                    continue;
+                    return true;
                 }
 
                 $nextMeaningfulIndex = $tokens->getNextMeaningfulToken($index);
@@ -221,30 +167,24 @@ final class NoUnusedImportsFixer extends AbstractFixer
                     $type = NamespaceUseAnalysis::TYPE_CLASS;
                 }
 
-                foreach ($importsByShortName[$shortName] as $import) {
-                    if ($import['type'] === $type) {
-                        $usedImports[$import['index']] = true;
-                    }
+                if ($import->getType() === $type) {
+                    return true;
                 }
 
                 continue;
             }
 
-            if (
-                $token->isComment()
-                && Preg::matchAll($commentPattern, $token->getContent(), $matches) > 0
+            if ($token->isComment()
+                && Preg::match(
+                    '/(?<![[:alnum:]\$_])(?<!\\\)'.$import->getShortName().'(?![[:alnum:]_])/i',
+                    $token->getContent(),
+                )
             ) {
-                foreach ($matches['name'] as $matchedName) {
-                    $shortName = strtolower($matchedName);
-
-                    foreach ($importsByShortName[$shortName] as $import) {
-                        $usedImports[$import['index']] = true;
-                    }
-                }
+                return true;
             }
         }
 
-        return $usedImports;
+        return false;
     }
 
     private function removeUseDeclaration(
@@ -296,26 +236,20 @@ final class NoUnusedImportsFixer extends AbstractFixer
 
     /**
      * @param list<NamespaceUseAnalysis> $useDeclarations
-     * @param array<int, true> $removedImports
      */
-    private function removeUsesInSameNamespace(
-        Tokens $tokens,
-        array $useDeclarations,
-        NamespaceAnalysis $namespaceDeclaration,
-        array $removedImports
-    ): void
+    private function removeUsesInSameNamespace(Tokens $tokens, array $useDeclarations, NamespaceAnalysis $namespaceDeclaration): void
     {
-        $namespacePrefix = $namespaceDeclaration->getFullName().'\\';
-        $nsLength = \strlen($namespacePrefix);
+        $namespace = $namespaceDeclaration->getFullName();
+        $nsLength = \strlen($namespace.'\\');
 
         foreach ($useDeclarations as $useDeclaration) {
-            if (isset($removedImports[$useDeclaration->getStartIndex()]) || $useDeclaration->isAliased()) {
+            if ($useDeclaration->isAliased()) {
                 continue;
             }
 
             $useDeclarationFullName = ltrim($useDeclaration->getFullName(), '\\');
 
-            if (!str_starts_with($useDeclarationFullName, $namespacePrefix)) {
+            if (!str_starts_with($useDeclarationFullName, $namespace.'\\')) {
                 continue;
             }
 
