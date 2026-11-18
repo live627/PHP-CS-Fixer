@@ -183,7 +183,7 @@ final class TernaryToNullCoalescingFixer extends AbstractFixer
                 \T_STRING_CAST,
                 \T_UNSET_CAST,
             ])
-            || $token->isGivenKindV4([
+            || $token->equalsAny([
                 '!',
                 '%',
                 '&',
