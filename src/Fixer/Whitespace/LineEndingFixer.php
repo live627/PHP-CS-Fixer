@@ -19,7 +19,6 @@ use PhpCsFixer\Fixer\WhitespacesAwareFixerInterface;
 use PhpCsFixer\FixerDefinition\CodeSample;
 use PhpCsFixer\FixerDefinition\FixerDefinition;
 use PhpCsFixer\FixerDefinition\FixerDefinitionInterface;
-use PhpCsFixer\Preg;
 use PhpCsFixer\Tokenizer\Token;
 use PhpCsFixer\Tokenizer\Tokens;
 
@@ -54,32 +53,32 @@ final class LineEndingFixer extends AbstractFixer implements WhitespacesAwareFix
     {
         $ending = $this->whitespacesConfig->getLineEnding();
 
+        $lineEndings = [
+            "\r\n" => $ending,
+            "\r" => $ending,
+            "\n" => $ending,
+        ];
+
         for ($index = 0, $count = \count($tokens); $index < $count; ++$index) {
             $token = $tokens[$index];
 
             if ($token->isGivenKind(\T_ENCAPSED_AND_WHITESPACE)) {
-                if ($tokens[$tokens->getNextMeaningfulToken($index)]->isGivenKind(\T_END_HEREDOC)) {
-                    $tokens[$index] = new Token([
-                        $token->getId(),
-                        Preg::replace(
-                            '#\R#',
-                            $ending,
-                            $token->getContent(),
-                        ),
-                    ]);
-                }
+                $nextIndex = $tokens->getNextMeaningfulToken($index);
 
+                if (null === $nextIndex || !$tokens[$nextIndex]->isGivenKind(\T_END_HEREDOC)) {
+                    continue;
+                }
+            } elseif (!$token->isGivenKind([\T_CLOSE_TAG, \T_COMMENT, \T_DOC_COMMENT, \T_OPEN_TAG, \T_START_HEREDOC, \T_WHITESPACE])) {
                 continue;
             }
 
-            if ($token->isGivenKind([\T_CLOSE_TAG, \T_COMMENT, \T_DOC_COMMENT, \T_OPEN_TAG, \T_START_HEREDOC, \T_WHITESPACE])) {
+            $content = $token->getContent();
+            $newContent = strtr($content, $lineEndings);
+
+            if ($content !== $newContent) {
                 $tokens[$index] = new Token([
                     $token->getId(),
-                    Preg::replace(
-                        '#\R#',
-                        $ending,
-                        $token->getContent(),
-                    ),
+                    $newContent,
                 ]);
             }
         }
