@@ -61,6 +61,7 @@ final class NoTrailingWhitespaceFixer extends AbstractFixer
     {
         for ($index = \count($tokens) - 1; $index >= 0; --$index) {
             $token = $tokens[$index];
+
             if (
                 $token->isGivenKind(\T_OPEN_TAG)
                 && $tokens->offsetExists($index + 1)
@@ -78,30 +79,44 @@ final class NoTrailingWhitespaceFixer extends AbstractFixer
                 continue;
             }
 
-            $lines = Preg::split('/(\R+)/', $token->getContent(), -1, \PREG_SPLIT_DELIM_CAPTURE);
+            $content = $token->getContent();
+
+            // Skip single-line whitespace unless it is at the end of the file.
+            if (
+                $tokens->offsetExists($index + 1)
+                && false === strpbrk($content, "\r\n")
+            ) {
+                continue;
+            }
+
+            $lines = Preg::split('/(\R+)/', $content, -1, \PREG_SPLIT_DELIM_CAPTURE);
             $linesSize = \count($lines);
 
-            // fix only multiline whitespaces or singleline whitespaces at the end of file
-            if ($linesSize > 1 || !isset($tokens[$index + 1])) {
-                if (!$tokens[$index - 1]->isGivenKind(\T_OPEN_TAG) || !Preg::match('/(.*)\R$/', $tokens[$index - 1]->getContent())) {
-                    \assert(isset($lines[0]));
-                    $lines[0] = rtrim($lines[0], " \t");
-                }
+            if (!$tokens[$index - 1]->isGivenKind(\T_OPEN_TAG) || !str_ends_with($tokens[$index - 1]->getContent(), "\n")) {
+                \assert(isset($lines[0]));
+                $lines[0] = rtrim($lines[0], " \t");
+            }
 
-                for ($i = 1; $i < $linesSize; ++$i) {
-                    \assert(isset($lines[$i]));
-                    $trimmedLine = rtrim($lines[$i], " \t");
-                    if ('' !== $trimmedLine) {
-                        $lines[$i] = $trimmedLine;
-                    }
-                }
+            for ($i = 1; $i < $linesSize; ++$i) {
+                \assert(isset($lines[$i]));
 
-                $content = implode('', $lines);
-                if ('' !== $content) {
-                    $tokens[$index] = new Token([$token->getId(), $content]);
-                } else {
-                    $tokens->clearAt($index);
+                $trimmedLine = rtrim($lines[$i], " \t");
+
+                if ('' !== $trimmedLine) {
+                    $lines[$i] = $trimmedLine;
                 }
+            }
+
+            $newContent = implode('', $lines);
+
+            if ($content === $newContent) {
+                continue;
+            }
+
+            if ('' !== $newContent) {
+                $tokens[$index] = new Token([$token->getId(), $newContent]);
+            } else {
+                $tokens->clearAt($index);
             }
         }
     }
