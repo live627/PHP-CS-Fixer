@@ -66,39 +66,67 @@ final class IndentationTypeFixer extends AbstractFixer implements WhitespacesAwa
 
         foreach ($tokens as $index => $token) {
             if ($token->isComment()) {
-                $tokens[$index] = $this->fixIndentInComment($tokens, $index);
-
+                $newToken = $this->fixIndentInComment($tokens, $index);
+            } elseif ($token->isWhitespace()) {
+                $newToken = $this->fixIndentToken($tokens, $index);
+            } else {
                 continue;
             }
 
-            if ($token->isWhitespace()) {
-                $tokens[$index] = $this->fixIndentToken($tokens, $index);
-
-                continue;
+            if ($newToken !== $token) {
+                $tokens[$index] = $newToken;
             }
         }
     }
 
     private function fixIndentInComment(Tokens $tokens, int $index): Token
     {
-        $content = Preg::replace('/^(?:(?<! ) {1,3})?\t/m', '\1    ', $tokens[$index]->getContent(), -1, $count);
-
-        // Also check for more tabs.
-        while (0 !== $count) {
-            $content = Preg::replace('/^(\ +)?\t/m', '\1    ', $content, -1, $count);
-        }
+        $token = $tokens[$index];
+        $originalContent = $content = $token->getContent();
 
         $indent = $this->indent;
 
-        // change indent to expected one
-        $content = Preg::replaceCallback('/^(?:    )+/m', fn (array $matches): string => $this->getExpectedIndent($matches[0], $indent), $content);
+        if (!str_contains($content, "\t") && "\t" !== $indent) {
+            return $token;
+        }
 
-        return new Token([$tokens[$index]->getId(), $content]);
+        if (str_contains($content, "\t")) {
+            $content = Preg::replace('/^(?:(?<! ) {1,3})?\t/m', '\1    ', $content, -1, $count);
+
+            // Also check for more tabs.
+            while (0 !== $count) {
+                $content = Preg::replace('/^(\ +)?\t/m', '\1    ', $content, -1, $count);
+            }
+        }
+
+        if ("\t" === $indent && str_contains($content, '    ')) {
+            $content = Preg::replaceCallback(
+                '/^(?:    )+/m',
+                fn (array $matches): string => $this->getExpectedIndent($matches[0], $indent),
+                $content,
+            );
+        }
+
+        return $content === $originalContent
+            ? $token
+            : new Token([$token->getId(), $content]);
     }
 
     private function fixIndentToken(Tokens $tokens, int $index): Token
     {
-        $content = $tokens[$index]->getContent();
+        $token = $tokens[$index];
+        $originalContent = $content = $token->getContent();
+
+        $indent = $this->indent;
+
+        // Nothing to normalize.
+        if (
+            !str_contains($content, "\t")
+            && ("\t" !== $indent || !str_contains($content, '    '))
+        ) {
+            return $token;
+        }
+
         $previousTokenHasTrailingLinebreak = false;
 
         // @TODO this can be removed when we have a transformer for "T_OPEN_TAG" to "T_OPEN_TAG + T_WHITESPACE"
@@ -107,14 +135,16 @@ final class IndentationTypeFixer extends AbstractFixer implements WhitespacesAwa
             $previousTokenHasTrailingLinebreak = true;
         }
 
-        $indent = $this->indent;
         $newContent = Preg::replaceCallback(
-            '/(\R)(\h+)/', // find indent
+            '/(\R)(\h+)/',
             function (array $matches) use ($indent): string {
-                // normalize mixed indent
-                $content = Preg::replace('/(?:(?<! ) {1,3})?\t/', '    ', $matches[2]);
+                $content = $matches[2];
 
-                // change indent to expected one
+                if (str_contains($content, "\t")) {
+                    // Normalize mixed indent.
+                    $content = Preg::replace('/(?:(?<! ) {1,3})?\t/', '    ', $content);
+                }
+
                 return $matches[1].$this->getExpectedIndent($content, $indent);
             },
             $content,
@@ -124,7 +154,9 @@ final class IndentationTypeFixer extends AbstractFixer implements WhitespacesAwa
             $newContent = substr($newContent, 1);
         }
 
-        return new Token([\T_WHITESPACE, $newContent]);
+        return $newContent === $originalContent
+            ? $token
+            : new Token([\T_WHITESPACE, $newContent]);
     }
 
     /**
